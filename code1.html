@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Code Clash - Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style type="text/tailwindcss">
+        :root {
+            --lc-bg: #1a1a1a;
+            --lc-nav: #282828;
+            --lc-card: #2c2c2c;
+            --lc-border: #3e3e3e;
+            --lc-text-primary: #eff1f6bf;
+            --lc-text-bright: #ffffff;
+            --lc-accent-orange: #ffa116;
+            --lc-accent-green: #00b8a3;
+            --lc-accent-blue: #007aff;
+            --lc-accent-yellow: #ffc01e;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--lc-bg);
+            color: var(--lc-text-primary);
+        }
+        .lc-card {
+            background-color: var(--lc-card);
+            border: 1px solid var(--lc-border);
+            border-radius: 8px;
+        }
+        .lc-btn-primary {
+            background-color: var(--lc-accent-orange);
+            color: white;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .lc-btn-primary:hover {
+            background-color: #ffb84d;
+        }
+        .lc-nav-link {
+            color: var(--lc-text-primary);
+            font-weight: 500;
+            font-size: 0.875rem;
+            padding: 0.5rem 0.75rem;
+            border-radius: 4px;
+            transition: color 0.2s;
+        }
+        .lc-nav-link:hover {
+            color: var(--lc-text-bright);
+        }
+        .lc-divider {
+            border-color: var(--lc-border);
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #3e3e3e;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+<nav class="sticky top-0 z-50 bg-[var(--lc-nav)] border-b border-[var(--lc-border)] h-12 flex items-center px-4 justify-between">
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[var(--lc-accent-orange)] text-2xl font-bold">code_blocks</span>
+<span class="text-white font-bold text-lg tracking-tight">Code Clash</span>
+</div>
+<div class="hidden md:flex items-center gap-1">
+<a class="lc-nav-link text-[var(--lc-text-bright)] border-b-2 border-[var(--lc-accent-orange)] rounded-none" href="#">Explore</a>
+<a class="lc-nav-link" href="#">Problems</a>
+<a class="lc-nav-link" href="#">Contest</a>
+<a class="lc-nav-link" href="#">Leaderboard</a>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative hidden sm:block">
+<span class="material-symbols-outlined absolute left-2 top-1/2 -translate-y-1/2 text-sm text-gray-500">search</span>
+<input class="bg-[#3e3e3e] border-none rounded-md py-1 pl-8 pr-3 text-xs w-48 focus:ring-1 focus:ring-[var(--lc-accent-orange)] outline-none text-white" placeholder="Search..." type="text"/>
+</div>
+<button class="text-gray-400 hover:text-white"><span class="material-symbols-outlined text-xl">notifications</span></button>
+<button class="text-gray-400 hover:text-white"><span class="material-symbols-outlined text-xl">settings</span></button>
+<div class="h-6 w-6 rounded-full overflow-hidden border border-[var(--lc-border)]">
+<img alt="User Avatar" class="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDwVptRD_epsnu2fVExTzF5-Ipv39oDKduBV2kn8yP5Air1syWc3AR1JSgNgwKKkdRxgpeJ9EEWlhalxJ7fHbnUa3IurDEIjslDjmlr5agrvGFbKK_dpY6EQUSg04adZ0BZ8L8katb_3yOgxpJqkzaoyCtUTG3lPN8IoHfNHbsupj_EyA3YnxxhY4e2UMONh7b_iBftblDGWR7t9suQI7andcnh49FOQeecpG40ZGv7nrUQnKutpBK7XadilgXYTgVp9rpAnd-ggPNp"/>
+</div>
+</div>
+</nav>
+<main class="max-w-[1200px] mx-auto p-6 grid grid-cols-12 gap-6">
+<div class="col-span-12 lg:col-span-3 space-y-6">
+<div class="lc-card p-4">
+<div class="flex items-center gap-4 mb-4">
+<img alt="User" class="h-16 w-16 rounded-lg object-cover border border-[var(--lc-border)]" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDwVptRD_epsnu2fVExTzF5-Ipv39oDKduBV2kn8yP5Air1syWc3AR1JSgNgwKKkdRxgpeJ9EEWlhalxJ7fHbnUa3IurDEIjslDjmlr5agrvGFbKK_dpY6EQUSg04adZ0BZ8L8katb_3yOgxpJqkzaoyCtUTG3lPN8IoHfNHbsupj_EyA3YnxxhY4e2UMONh7b_iBftblDGWR7t9suQI7andcnh49FOQeecpG40ZGv7nrUQnKutpBK7XadilgXYTgVp9rpAnd-ggPNp"/>
+<div>
+<h2 class="text-white font-bold text-lg">CodeNinja_X</h2>
+<p class="text-xs text-[var(--lc-accent-yellow)] font-medium">Rank 1,240</p>
+</div>
+</div>
+<div class="space-y-3">
+<div class="flex justify-between text-xs">
+<span>Solved Problems</span>
+<span class="text-white font-medium">452 / 2,400</span>
+</div>
+<div class="w-full bg-[#3e3e3e] h-1.5 rounded-full overflow-hidden">
+<div class="bg-[var(--lc-accent-green)] h-full w-[18%]"></div>
+</div>
+<div class="flex justify-between text-[10px] text-gray-500">
+<span class="text-[var(--lc-accent-green)]">Easy 210</span>
+<span class="text-[var(--lc-accent-yellow)]">Med 180</span>
+<span class="text-red-500">Hard 62</span>
+</div>
+</div>
+<div class="mt-6 pt-4 border-t border-[var(--lc-border)]">
+<h3 class="text-xs font-semibold mb-3 uppercase tracking-wider text-gray-500">Quick Actions</h3>
+<div class="space-y-2">
+<button class="w-full lc-btn-primary py-2.5 rounded flex items-center justify-center gap-2 text-sm shadow-lg shadow-[var(--lc-accent-orange)]/10">
+<span class="material-symbols-outlined text-lg">bolt</span>
+                            Quick Match
+                        </button>
+<button class="w-full bg-[#3e3e3e] hover:bg-[#4e4e4e] text-white py-2.5 rounded text-sm transition-colors">
+                            Create Private Room
+                        </button>
+</div>
+</div>
+</div>
+<div class="lc-card overflow-hidden">
+<div class="p-4 border-b border-[var(--lc-border)] flex justify-between items-center">
+<h3 class="text-sm font-semibold text-white">Friends</h3>
+<span class="text-xs text-[var(--lc-accent-green)]">12 Online</span>
+</div>
+<div class="p-2 max-h-[300px] overflow-y-auto">
+<div class="flex items-center gap-3 p-2 hover:bg-white/5 rounded cursor-pointer transition-colors group">
+<div class="relative">
+<img alt="Sarah" class="h-8 w-8 rounded object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC12Y6yZ570SDc1YWFcj1s7bG3JfjgZUkRpkeSkIJNLLGZ9s1Yo3js6tgMr54wpmIUZtxVDsbv5-WxFDWKBS2ZIDaGBk-p9OjIxTu-IWxPFBQMOqdlT5JO1ETdzBIL2IWmsUvTHUiJJhwuFcql3n6i80LPdpbo2a2sG5KX3Xnu_gx-2CCn0QnpTo6BHTNrCBt4Xyw1kT9sTy18vSpAdMBjtmKCIkNxL8WVSrlaqpmmug-yUFWif6J9seGS1KgAInlQO9xL_izDwVnx8"/>
+<div class="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 bg-[var(--lc-accent-green)] border-2 border-[var(--lc-card)] rounded-full"></div>
+</div>
+<div class="flex-1">
+<p class="text-xs font-medium text-white group-hover:text-[var(--lc-accent-blue)] transition-colors">Dev_Sarah</p>
+<p class="text-[10px] text-gray-500">In Queue...</p>
+</div>
+</div>
+<div class="flex items-center gap-3 p-2 hover:bg-white/5 rounded cursor-pointer transition-colors group">
+<div class="relative">
+<img alt="Alex" class="h-8 w-8 rounded object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCFlJyN-GTiVP_jY4ZpYO5xAtrsvhrwYkD8vPpDnl7bEfK--lVxEpUcIpnuoKctccFXGNybdH_oz8VFFxs9V_xeq_TuxbVEF3guYF7fAHBIGrpnS0R6CNn7eEgQFhma4UiOcR6pVEpNX9dOfYuSTwo8m8vPxhIg-AUsUTdL-hCNHqrIRwv0BknlNSRJXRZGhVogg_0u1DNsa4Fd7CN5hSm9batEVW0sDdZ1GdOcEkFhEAnr3shunuDglTpKLw-wULxOLjVg5P188xzR"/>
+<div class="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 bg-[var(--lc-accent-blue)] border-2 border-[var(--lc-card)] rounded-full"></div>
+</div>
+<div class="flex-1">
+<p class="text-xs font-medium text-white group-hover:text-[var(--lc-accent-blue)] transition-colors">Alex_Codes</p>
+<p class="text-[10px] text-[var(--lc-accent-blue)]">Clashing (04:12)</p>
+</div>
+</div>
+<div class="flex items-center gap-3 p-2 hover:bg-white/5 rounded cursor-pointer transition-colors group opacity-60">
+<div class="relative">
+<img alt="Mike" class="h-8 w-8 rounded object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAVoD8FLgsdpEqfDWMVEybHXeY42muN7U5y1FK7CybGV9O1eNzhaeiT40MKGsRZtRdjHh_toCSSD8c50TwCaMWat_rr8j-ZNY-uPc4ENwgpCv7pYPvcPKtayvfyVL8e5zi4GKbamiJHdJVIWD5hXr1GWQhNIqGpyKUKOJOXNcCyGOu0rV6s3u85r_5zE-LXBcJ_dJ_hPbPvLKWCD__WZAoRm7SlXWp8nofSmoT3KPgq2_ok8gHnVFDD7U70DBHVXtV6A6lE7qlvTeyv"/>
+</div>
+<div class="flex-1">
+<p class="text-xs font-medium text-white">ProCoder99</p>
+<p class="text-[10px] text-gray-500">Offline</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="col-span-12 lg:col-span-6 space-y-6">
+<div class="lc-card bg-gradient-to-r from-[#2c2c2c] to-[#1e2a3a] p-6 border-l-4 border-l-[var(--lc-accent-blue)]">
+<div class="flex items-center justify-between">
+<div>
+<h2 class="text-xl font-bold text-white mb-1">Weekly Clash Series</h2>
+<p class="text-sm text-gray-400">Join the algorithmic tournament. $1,000 Prize Pool.</p>
+<button class="mt-4 px-4 py-1.5 bg-[var(--lc-accent-blue)] text-white text-xs font-bold rounded hover:bg-blue-600 transition-all uppercase tracking-tight">Register Now</button>
+</div>
+<span class="material-symbols-outlined text-6xl text-white/10 select-none">emoji_events</span>
+</div>
+</div>
+<div class="lc-card">
+<div class="px-4 py-3 border-b border-[var(--lc-border)] flex justify-between items-center">
+<h3 class="text-sm font-semibold text-white">Upcoming Clashes</h3>
+<a class="text-xs text-[var(--lc-accent-blue)] hover:underline" href="#">View All</a>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left text-xs">
+<thead>
+<tr class="bg-white/5 text-gray-500">
+<th class="px-4 py-3 font-medium uppercase tracking-wider">Tournament Name</th>
+<th class="px-4 py-3 font-medium uppercase tracking-wider">Starts In</th>
+<th class="px-4 py-3 font-medium uppercase tracking-wider">Players</th>
+<th class="px-4 py-3 text-right">Action</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-[var(--lc-border)]">
+<tr class="hover:bg-white/5 transition-colors">
+<td class="px-4 py-4 text-white font-medium">Binary Search Blitz</td>
+<td class="px-4 py-4 text-[var(--lc-accent-yellow)]">14m 20s</td>
+<td class="px-4 py-4">421 / 1000</td>
+<td class="px-4 py-4 text-right">
+<button class="text-[var(--lc-accent-green)] hover:underline">Join</button>
+</td>
+</tr>
+<tr class="hover:bg-white/5 transition-colors">
+<td class="px-4 py-4 text-white font-medium">Dynamic Duels v4</td>
+<td class="px-4 py-4 text-[var(--lc-accent-yellow)]">48m 10s</td>
+<td class="px-4 py-4">89 / 200</td>
+<td class="px-4 py-4 text-right">
+<button class="text-[var(--lc-accent-green)] hover:underline">Join</button>
+</td>
+</tr>
+<tr class="hover:bg-white/5 transition-colors">
+<td class="px-4 py-4 text-white font-medium">Graph Theory Gauntlet</td>
+<td class="px-4 py-4">02h 15m</td>
+<td class="px-4 py-4">12 / 50</td>
+<td class="px-4 py-4 text-right">
+<button class="text-[var(--lc-accent-green)] hover:underline">Join</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="lc-card overflow-hidden">
+<div class="px-4 py-3 border-b border-[var(--lc-border)] flex justify-between items-center">
+<h3 class="text-sm font-semibold text-white">Recent Activity</h3>
+</div>
+<div class="p-4 space-y-4">
+<div class="flex items-center gap-4 text-sm">
+<div class="p-2 rounded bg-[var(--lc-accent-green)]/10 text-[var(--lc-accent-green)]">
+<span class="material-symbols-outlined">check_circle</span>
+</div>
+<div class="flex-1">
+<div class="flex justify-between">
+<span class="text-white font-medium">Victory vs. ShadowCoder</span>
+<span class="text-xs text-gray-500">2h ago</span>
+</div>
+<p class="text-xs text-gray-500">Problem: Two Sum IV • Time: 04:32 • <span class="text-[var(--lc-accent-yellow)]">+12 LP</span></p>
+</div>
+</div>
+<div class="flex items-center gap-4 text-sm">
+<div class="p-2 rounded bg-red-500/10 text-red-500">
+<span class="material-symbols-outlined">cancel</span>
+</div>
+<div class="flex-1">
+<div class="flex justify-between">
+<span class="text-white font-medium">Defeat vs. ByteMaster</span>
+<span class="text-xs text-gray-500">5h ago</span>
+</div>
+<p class="text-xs text-gray-500">Problem: LRU Cache • Time: 12:15 • <span class="text-red-400">-8 LP</span></p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="col-span-12 lg:col-span-3 space-y-6">
+<div class="lc-card">
+<div class="px-4 py-3 border-b border-[var(--lc-border)]">
+<h3 class="text-sm font-semibold text-white">Global Ranking</h3>
+</div>
+<div class="p-2">
+<div class="flex items-center gap-3 p-2 border-b border-[var(--lc-border)]/50">
+<span class="text-xs font-bold text-[var(--lc-accent-yellow)] w-4">1</span>
+<div class="h-6 w-6 rounded-full bg-gray-600"></div>
+<span class="text-xs text-white font-medium flex-1">TheArchitect</span>
+<span class="text-xs text-[var(--lc-accent-orange)]">3,402</span>
+</div>
+<div class="flex items-center gap-3 p-2 border-b border-[var(--lc-border)]/50">
+<span class="text-xs font-bold text-gray-400 w-4">2</span>
+<div class="h-6 w-6 rounded-full bg-gray-600"></div>
+<span class="text-xs text-white font-medium flex-1">LambdaHero</span>
+<span class="text-xs text-[var(--lc-accent-orange)]">3,281</span>
+</div>
+<div class="flex items-center gap-3 p-2 border-b border-[var(--lc-border)]/50">
+<span class="text-xs font-bold text-orange-700 w-4">3</span>
+<div class="h-6 w-6 rounded-full bg-gray-600"></div>
+<span class="text-xs text-white font-medium flex-1">GoGuru</span>
+<span class="text-xs text-[var(--lc-accent-orange)]">3,115</span>
+</div>
+<div class="flex items-center gap-3 p-2 bg-[var(--lc-accent-blue)]/10 rounded my-1 border border-[var(--lc-accent-blue)]/20">
+<span class="text-xs font-bold text-white w-4">1240</span>
+<div class="h-6 w-6 rounded-full bg-gray-600 overflow-hidden">
+<img class="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDwVptRD_epsnu2fVExTzF5-Ipv39oDKduBV2kn8yP5Air1syWc3AR1JSgNgwKKkdRxgpeJ9EEWlhalxJ7fHbnUa3IurDEIjslDjmlr5agrvGFbKK_dpY6EQUSg04adZ0BZ8L8katb_3yOgxpJqkzaoyCtUTG3lPN8IoHfNHbsupj_EyA3YnxxhY4e2UMONh7b_iBftblDGWR7t9suQI7andcnh49FOQeecpG40ZGv7nrUQnKutpBK7XadilgXYTgVp9rpAnd-ggPNp"/>
+</div>
+<span class="text-xs text-white font-medium flex-1">You</span>
+<span class="text-xs text-[var(--lc-accent-orange)]">1,842</span>
+</div>
+</div>
+<button class="w-full py-2 text-[10px] text-gray-500 uppercase tracking-widest font-bold hover:text-white transition-colors">View Full Leaderboard</button>
+</div>
+<div class="lc-card p-4">
+<h3 class="text-sm font-semibold text-white mb-4">Daily Challenge</h3>
+<div class="bg-[#1a1a1a] p-3 rounded border border-[var(--lc-border)]">
+<p class="text-xs text-[var(--lc-accent-orange)] font-medium mb-1">Dec 27, 2024</p>
+<p class="text-sm text-white font-bold mb-3">455. Assign Cookies</p>
+<div class="flex items-center gap-2">
+<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-[var(--lc-accent-green)]/20 text-[var(--lc-accent-green)]">EASY</span>
+<span class="text-[10px] text-gray-500">Solved by 4.2k</span>
+</div>
+</div>
+<button class="w-full mt-4 bg-white/5 hover:bg-white/10 text-white py-2 rounded text-xs font-medium transition-all">Solve Now</button>
+</div>
+</div>
+</main>
+<footer class="fixed bottom-0 left-0 right-0 bg-[var(--lc-nav)] border-t border-[var(--lc-border)] h-8 flex items-center px-6 justify-between text-[10px] text-gray-500 z-50">
+<div class="flex gap-6">
+<div class="flex items-center gap-1">
+<span class="h-2 w-2 rounded-full bg-[var(--lc-accent-green)]"></span>
+<span>System Status: Optimal</span>
+</div>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]">group</span>
+<span>42,109 Players Online</span>
+</div>
+</div>
+<div class="flex gap-4">
+<a class="hover:text-white" href="#">Help Center</a>
+<a class="hover:text-white" href="#">API Reference</a>
+<a class="hover:text-white" href="#">Privacy</a>
+<span>© 2024 Code Clash Protocol</span>
+</div>
+</footer>
+
+</body></html>

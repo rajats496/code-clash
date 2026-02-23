@@ -1,0 +1,38 @@
+/* ── Reusable utility classes ── */
+
+.lc-card {
+  background-color: var(--lc-card);
+  border: 1px solid var(--lc-border);
+  border-radius: 8px;
+}
+
+.lc-btn-primary {
+  background-color: var(--lc-accent-orange);
+  color: white;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.lc-btn-primary:hover {
+  background-color: #ffb84d;
+}
+
+.lc-nav-link {
+  color: var(--lc-text-primary);
+  font-weight: 500;
+  font-size: 0.875rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  transition: color 0.2s;
+  text-decoration: none;
+}
+
+.lc-nav-link:hover {
+  color: var(--lc-text-bright);
+}
+
+.lc-nav-link.active {
+  color: var(--lc-text-bright);
+  border-bottom: 2px solid var(--lc-accent-orange);
+  border-radius: 0;
+}
