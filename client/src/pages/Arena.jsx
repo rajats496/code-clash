@@ -241,11 +241,11 @@ const ResizablePanels = ({ submissionStatus, language, code, setCode, matchState
                       <div className="px-4 py-3 space-y-2">
                         <div className="flex items-start gap-2 text-xs font-mono">
                           <span className="text-amber-400 font-bold shrink-0 w-16">Expected</span>
-                          <code className="px-2 py-0.5 rounded break-all" style={{ backgroundColor: 'var(--lc-nav)', color: '#a5b4fc', border: '1px solid var(--lc-border)' }}>{test.expectedOutput}</code>
+                          <pre className="px-2 py-0.5 rounded break-all whitespace-pre-wrap" style={{ backgroundColor: 'var(--lc-nav)', color: '#a5b4fc', border: '1px solid var(--lc-border)', margin: 0, fontFamily: 'inherit', fontSize: 'inherit' }}>{test.expectedOutput}</pre>
                         </div>
                         <div className="flex items-start gap-2 text-xs font-mono">
                           <span className="text-red-400 font-bold shrink-0 w-16">Got</span>
-                          <code className="px-2 py-0.5 rounded break-all" style={{ backgroundColor: 'var(--lc-nav)', color: '#f87171', border: '1px solid var(--lc-border)' }}>{test.actualOutput || '(no output)'}</code>
+                          <pre className="px-2 py-0.5 rounded break-all whitespace-pre-wrap" style={{ backgroundColor: 'var(--lc-nav)', color: '#f87171', border: '1px solid var(--lc-border)', margin: 0, fontFamily: 'inherit', fontSize: 'inherit' }}>{test.actualOutput || '(no output)'}</pre>
                         </div>
                         {test.stderr && (
                           <div className="flex items-start gap-2 text-xs font-mono">
