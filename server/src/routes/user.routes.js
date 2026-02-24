@@ -10,29 +10,29 @@ const router = express.Router();
  * Get authenticated user's detailed stats
  */
 router.get('/stats', authenticateToken, async (req, res) => {
-    try {
-        const user = req.user;
-        const losses = (user.matchesPlayed || 0) - (user.matchesWon || 0);
-        const winRate = user.matchesPlayed
-            ? ((user.matchesWon / user.matchesPlayed) * 100).toFixed(1)
-            : '0.0';
+  try {
+    const user = req.user;
+    const losses = (user.matchesPlayed || 0) - (user.matchesWon || 0);
+    const winRate = user.matchesPlayed
+      ? ((user.matchesWon / user.matchesPlayed) * 100).toFixed(1)
+      : '0.0';
 
-        res.json({
-            success: true,
-            stats: {
-                name: user.name,
-                picture: user.picture,
-                rating: user.rating || 1200,
-                matchesPlayed: user.matchesPlayed || 0,
-                matchesWon: user.matchesWon || 0,
-                losses,
-                winRate: parseFloat(winRate),
-            },
-        });
-    } catch (error) {
-        console.error('❌ User stats error:', error);
-        res.status(500).json({ success: false, message: 'Server error' });
-    }
+    res.json({
+      success: true,
+      stats: {
+        name: user.name,
+        picture: user.picture,
+        rating: user.rating || 1200,
+        matchesPlayed: user.matchesPlayed || 0,
+        matchesWon: user.matchesWon || 0,
+        losses,
+        winRate: parseFloat(winRate),
+      },
+    });
+  } catch (error) {
+    console.error('❌ User stats error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
 });
 
 /**
@@ -40,29 +40,29 @@ router.get('/stats', authenticateToken, async (req, res) => {
  * Get all players sorted by rating (public)
  */
 router.get('/leaderboard', async (req, res) => {
-    try {
-        const topPlayers = await User.find()
-            .sort({ rating: -1 })
-            .limit(100)
-            .select('name picture rating matchesPlayed matchesWon email _id')
-            .lean();
+  try {
+    const topPlayers = await User.find({ role: { $ne: 'admin' } })
+      .sort({ rating: -1 })
+      .limit(100)
+      .select('name picture rating matchesPlayed matchesWon email _id')
+      .lean();
 
-        const formattedPlayers = topPlayers.map((player) => ({
-            _id: player._id,
-            name: player.name,
-            email: player.email,
-            picture: player.picture,
-            rating: player.rating || 1200,
-            matchesPlayed: player.matchesPlayed || 0,
-            wins: player.matchesWon || 0,
-            totalMatches: player.matchesPlayed || 0,
-        }));
+    const formattedPlayers = topPlayers.map((player) => ({
+      _id: player._id,
+      name: player.name,
+      email: player.email,
+      picture: player.picture,
+      rating: player.rating || 1200,
+      matchesPlayed: player.matchesPlayed || 0,
+      wins: player.matchesWon || 0,
+      totalMatches: player.matchesPlayed || 0,
+    }));
 
-        res.json(formattedPlayers);
-    } catch (error) {
-        console.error('Leaderboard error:', error);
-        res.status(500).json({ success: false, message: 'Server error' });
-    }
+    res.json(formattedPlayers);
+  } catch (error) {
+    console.error('Leaderboard error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
 });
 
 // ─── Friends API ──────────────────────────────────────────────────────────────
@@ -76,7 +76,7 @@ router.get('/search', authenticateToken, async (req, res) => {
     const me = await User.findById(req.user._id).select('friends friendRequests').lean();
     const friendIds = (me.friends || []).map((id) => id.toString());
     const pendingFromMeIds = new Set(); // IDs I have already sent a request to
-    const pendingToMeIds   = new Set(); // IDs who sent me a request
+    const pendingToMeIds = new Set(); // IDs who sent me a request
 
     (me.friendRequests || []).forEach((r) => pendingToMeIds.add(r.from.toString()));
 
@@ -89,7 +89,7 @@ router.get('/search', authenticateToken, async (req, res) => {
     const users = await User.find({
       _id: { $ne: req.user._id },
       $or: [
-        { name:  { $regex: q, $options: 'i' } },
+        { name: { $regex: q, $options: 'i' } },
         { email: { $regex: q, $options: 'i' } },
       ],
     })
@@ -100,9 +100,9 @@ router.get('/search', authenticateToken, async (req, res) => {
     const result = users.map((u) => {
       const uid = u._id.toString();
       let relation = 'none';
-      if (friendIds.includes(uid))        relation = 'friends';
+      if (friendIds.includes(uid)) relation = 'friends';
       else if (pendingFromMeIds.has(uid)) relation = 'requested';
-      else if (pendingToMeIds.has(uid))   relation = 'incoming';
+      else if (pendingToMeIds.has(uid)) relation = 'incoming';
       return { ...u, relation };
     });
 
@@ -175,7 +175,7 @@ router.post('/friends/request/:targetId', authenticateToken, async (req, res) =>
     if (incoming) {
       // Auto-accept both ways
       await User.findByIdAndUpdate(myId, {
-        $pull:  { friendRequests: { from: targetId } },
+        $pull: { friendRequests: { from: targetId } },
         $addToSet: { friends: targetId },
       });
       await User.findByIdAndUpdate(targetId, {
@@ -188,7 +188,7 @@ router.post('/friends/request/:targetId', authenticateToken, async (req, res) =>
           byName: req.user.name,
           byPicture: req.user.picture || null,
         });
-      } catch (_) {}
+      } catch (_) { }
       return res.json({ success: true, message: 'Auto-accepted! You are now friends.' });
     }
 
@@ -204,7 +204,7 @@ router.post('/friends/request/:targetId', authenticateToken, async (req, res) =>
         fromName: req.user.name,
         fromPicture: req.user.picture || null,
       });
-    } catch (_) {}
+    } catch (_) { }
 
     res.json({ success: true, message: 'Friend request sent!' });
   } catch (err) {
@@ -220,7 +220,7 @@ router.post('/friends/accept/:fromId', authenticateToken, async (req, res) => {
     const myId = req.user._id.toString();
 
     await User.findByIdAndUpdate(myId, {
-      $pull:     { friendRequests: { from: fromId } },
+      $pull: { friendRequests: { from: fromId } },
       $addToSet: { friends: fromId },
     });
     await User.findByIdAndUpdate(fromId, {
@@ -234,7 +234,7 @@ router.post('/friends/accept/:fromId', authenticateToken, async (req, res) => {
         byName: req.user.name,
         byPicture: req.user.picture || null,
       });
-    } catch (_) {}
+    } catch (_) { }
 
     res.json({ success: true, message: 'Friend request accepted!' });
   } catch (err) {

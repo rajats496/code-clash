@@ -1,7 +1,10 @@
 import {
   verifyGoogleToken,
+  verifyGoogleAccessToken,
   findOrCreateUser,
   generateJWT,
+  registerWithEmail,
+  loginWithEmail,
 } from '../services/auth.service.js';
 
 /**
@@ -10,22 +13,18 @@ import {
  */
 export const googleAuth = async (req, res) => {
   try {
-    const { token } = req.body;
+    const { token, tokenType } = req.body;
 
     if (!token) {
       return res.status(400).json({ error: 'Token is required' });
     }
 
-    // Step 1: Verify token with Google
-    const googleUser = await verifyGoogleToken(token);
-
-    // Step 2: Find or create user in our database
+    const googleUser = tokenType === 'access_token'
+      ? await verifyGoogleAccessToken(token)
+      : await verifyGoogleToken(token);
     const user = await findOrCreateUser(googleUser);
-
-    // Step 3: Generate our JWT
     const jwtToken = generateJWT(user);
 
-    // Step 4: Return user info + JWT
     res.json({
       success: true,
       token: jwtToken,
@@ -34,6 +33,7 @@ export const googleAuth = async (req, res) => {
         email: user.email,
         name: user.name,
         picture: user.picture,
+        role: user.role,
         rating: user.rating,
         matchesPlayed: user.matchesPlayed,
         matchesWon: user.matchesWon,
@@ -46,12 +46,82 @@ export const googleAuth = async (req, res) => {
 };
 
 /**
+ * POST /api/auth/register
+ * Register with email + password
+ */
+export const register = async (req, res) => {
+  try {
+    const { name, email, password, role } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({ error: 'Name, email, and password are required' });
+    }
+
+    const user = await registerWithEmail({ name, email, password, role });
+    const jwtToken = generateJWT(user);
+
+    res.status(201).json({
+      success: true,
+      token: jwtToken,
+      user: {
+        id: user._id,
+        email: user.email,
+        name: user.name,
+        picture: user.picture,
+        role: user.role,
+        rating: user.rating,
+        matchesPlayed: user.matchesPlayed,
+        matchesWon: user.matchesWon,
+      },
+    });
+  } catch (error) {
+    console.error('Register error:', error.message);
+    const status = error.message.includes('already exists') ? 409 : 400;
+    res.status(status).json({ error: error.message });
+  }
+};
+
+/**
+ * POST /api/auth/login
+ * Login with email + password
+ */
+export const login = async (req, res) => {
+  try {
+    const { email, password, role } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+
+    const user = await loginWithEmail({ email, password, role });
+    const jwtToken = generateJWT(user);
+
+    res.json({
+      success: true,
+      token: jwtToken,
+      user: {
+        id: user._id,
+        email: user.email,
+        name: user.name,
+        picture: user.picture,
+        role: user.role,
+        rating: user.rating,
+        matchesPlayed: user.matchesPlayed,
+        matchesWon: user.matchesWon,
+      },
+    });
+  } catch (error) {
+    console.error('Login error:', error.message);
+    res.status(401).json({ error: error.message });
+  }
+};
+
+/**
  * GET /api/auth/me
  * Get current user info (requires JWT)
  */
 export const getCurrentUser = async (req, res) => {
   try {
-    // req.user is set by auth middleware
     const user = req.user;
 
     res.json({
@@ -61,6 +131,7 @@ export const getCurrentUser = async (req, res) => {
         email: user.email,
         name: user.name,
         picture: user.picture,
+        role: user.role,
         rating: user.rating,
         matchesPlayed: user.matchesPlayed,
         matchesWon: user.matchesWon,

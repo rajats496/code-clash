@@ -29,10 +29,15 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Token expired or invalid
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+      // Check if we are currently trying to log in or register
+      const isAuthEndpoint = error.config.url.includes('/auth/login') || error.config.url.includes('/auth/register');
+
+      if (!isAuthEndpoint) {
+        // Token expired or invalid for a protected route, safely redirect
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

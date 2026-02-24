@@ -8,7 +8,7 @@ import {
   deleteMatch,
   advanceRound,
 } from './matchState.js';
-import { runTestCases } from '../services/jdoodle.service.js';
+import { runTestCases } from '../services/piston.service.js';
 import { Problem } from '../models/Problem.model.js';
 import { Match } from '../models/Match.model.js';
 import { Submission } from '../models/Submission.model.js';
@@ -113,9 +113,9 @@ export const handleJoinMatch = (io, socket) => {
         problemId: match.problemIds[match.currentRound],
         players: match.players,
         timer: {
-          startTime:   match.timer.startTime,    // epoch ms for client-side calc
+          startTime: match.timer.startTime,    // epoch ms for client-side calc
           currentTime: match.timer.currentTime,
-          isRunning:   match.timer.isRunning,
+          isRunning: match.timer.isRunning,
         },
         status: match.status,
         currentRound: match.currentRound,
@@ -247,7 +247,7 @@ const finalizeMatch = async (io, match, winnerId, socket) => {
 export const handleCodeSubmit = (io, socket) => {
   socket.on('submit-code', async (data) => {
     try {
-      const { code, language } = data;
+      const { code, language, isSubmit } = data;
       const userId = socket.user._id.toString();
 
       console.log(`📤 Submission from ${socket.user.name} (Round ${(getMatchByUserId(userId)?.currentRound || 0) + 1})`);
@@ -287,11 +287,29 @@ export const handleCodeSubmit = (io, socket) => {
         return socket.emit('error', { message: 'Problem not found' });
       }
 
-      console.log(`🧪 Running ${problem.testCases.length} test cases (Round ${match.currentRound + 1})...`);
+      // If just running, only use visible test cases
+      const testCasesToRun = isSubmit ? problem.testCases : problem.testCases.filter(tc => !tc.isHidden);
 
-      const result = await runTestCases(code, language, problem.testCases);
+      console.log(`🧪 Running ${testCasesToRun.length} test cases (Round ${match.currentRound + 1})...`);
+
+      const result = await runTestCases(code, language, testCasesToRun);
 
       console.log(`✅ Result: ${result.verdict} (${result.passedTests}/${result.totalTests} passed)`);
+
+      // Send result to player
+      socket.emit('submission-result', {
+        verdict: result.verdict,
+        message: `${result.passedTests}/${result.totalTests} test cases passed`,
+        testResults: result.testResults,
+        allPassed: result.allTestsPassed,
+        runtime: result.runtime || null,
+        memory: result.memory || null,
+        compilationError: result.compilationError || null,
+        isSubmit: isSubmit,
+      });
+
+      // If it's just a run, skip all scoring and DB saving logic
+      if (!isSubmit) return;
 
       // Save submission to database
       const matchDoc = await Match.findOne({ roomId: match.roomId });
@@ -306,17 +324,6 @@ export const handleCodeSubmit = (io, socket) => {
           submittedAt: new Date(),
         });
       }
-
-      // Send result to player
-      socket.emit('submission-result', {
-        verdict:    result.verdict,
-        message:    `${result.passedTests}/${result.totalTests} test cases passed`,
-        testResults: result.testResults,
-        allPassed:  result.allTestsPassed,
-        runtime:    result.runtime  || null,
-        memory:     result.memory   || null,
-        compilationError: result.compilationError || null,
-      });
 
       // ── ACCEPTED — Round logic ──
       if (result.verdict === 'Accepted') {

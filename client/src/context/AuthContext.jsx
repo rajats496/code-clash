@@ -26,29 +26,27 @@ export const AuthProvider = ({ children }) => {
     if (token) {
       connectSocket(token);
     }
-    
+
     return () => {
-      // Cleanup on unmount or when token changes
       if (!token) {
         disconnectSocket();
       }
     };
   }, [token]);
 
-    const refreshUser = async () => {
+  const refreshUser = async () => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) return;
+      const tk = localStorage.getItem('token');
+      if (!tk) return;
 
       const response = await fetch('/api/auth/me', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${tk}` },
       });
 
       if (response.ok) {
         const data = await response.json();
         setUser(data.user);
+        localStorage.setItem('user', JSON.stringify(data.user));
         console.log('✅ User data refreshed');
       }
     } catch (error) {
@@ -56,25 +54,59 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  /** Save auth state after successful login/register */
+  const saveAuth = (jwtToken, userData) => {
+    setToken(jwtToken);
+    setUser(userData);
+    localStorage.setItem('token', jwtToken);
+    localStorage.setItem('user', JSON.stringify(userData));
+  };
+
   /**
-   * Login with Google ID token
+   * Login with Google token (access_token or id_token)
    */
-  const loginWithGoogle = async (googleToken) => {
+  const loginWithGoogle = async (googleToken, tokenType = 'id_token') => {
     try {
-      const response = await api.post('/auth/google', { token: googleToken });
+      const response = await api.post('/auth/google', { token: googleToken, tokenType });
       const { token: jwtToken, user: userData } = response.data;
-
-      // Save to state
-      setToken(jwtToken);
-      setUser(userData);
-
-      // Save to localStorage
-      localStorage.setItem('token', jwtToken);
-      localStorage.setItem('user', JSON.stringify(userData));
-
+      saveAuth(jwtToken, userData);
       return { success: true };
     } catch (error) {
       console.error('Login failed:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || 'Login failed',
+      };
+    }
+  };
+
+  /**
+   * Register with email + password
+   */
+  const registerWithEmail = async ({ name, email, password, role }) => {
+    try {
+      const response = await api.post('/auth/register', { name, email, password, role });
+      const { token: jwtToken, user: userData } = response.data;
+      saveAuth(jwtToken, userData);
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.response?.data?.error || 'Registration failed',
+      };
+    }
+  };
+
+  /**
+   * Login with email + password
+   */
+  const loginWithEmail = async ({ email, password, role }) => {
+    try {
+      const response = await api.post('/auth/login', { email, password, role });
+      const { token: jwtToken, user: userData } = response.data;
+      saveAuth(jwtToken, userData);
+      return { success: true };
+    } catch (error) {
       return {
         success: false,
         error: error.response?.data?.error || 'Login failed',
@@ -98,15 +130,17 @@ export const AuthProvider = ({ children }) => {
     token,
     loading,
     loginWithGoogle,
+    loginWithEmail,
+    registerWithEmail,
     logout,
     isAuthenticated: !!token,
+    isAdmin: user?.role === 'admin',
     refreshUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-// Custom hook to use auth context
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {

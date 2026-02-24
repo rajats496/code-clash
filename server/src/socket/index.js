@@ -1,5 +1,6 @@
 import { Server } from 'socket.io';
 import { socketAuthMiddleware } from './middleware.js';
+import { getRedisSubscriber } from '../config/redis.js';
 import {
   handleJoinMatch,
   handleCodeUpdate,
@@ -14,6 +15,13 @@ import {
   handleQueueDisconnect,
   handlePrivateRoom,
 } from './matchmaking.handler.js';
+import {
+  handleJoinContest,
+  handleLeaveContest,
+  handleContestSubmit,
+  handleContestLeaderboard,
+  onContestDisconnect,
+} from './contest.handler.js';
 
 let io = null;
 
@@ -55,17 +63,49 @@ export const initializeSocket = (server) => {
     handleCodeSubmit(io, socket);
     handleLeaveMatch(io, socket);
     handlePostMatchChat(io, socket);
- console.log('✅ Registering disconnect handler for:', socket.user.name);
+
+    // Contest handlers
+    handleJoinContest(io, socket);
+    handleLeaveContest(io, socket);
+    handleContestSubmit(io, socket);
+    handleContestLeaderboard(io, socket);
+
+    console.log('✅ Registering disconnect handler for:', socket.user.name);
     // Disconnect handler
     socket.on('disconnect', () => {
       onlineUsers.delete(uid);
       // Notify all connected clients that this user is now offline
       io.emit('user-offline', { userId: uid, count: onlineUsers.size });
-  console.log('🔌 DISCONNECT FIRED for:', socket.user.name);
-  handleQueueDisconnect(socket);
-  onPlayerDisconnect(io, socket); // ← CORRECT - calls logic directly
-});
+      console.log('🔌 DISCONNECT FIRED for:', socket.user.name);
+      handleQueueDisconnect(socket);
+      onPlayerDisconnect(io, socket);
+      onContestDisconnect(io, socket);
+    });
   });
+
+  // Cross-Process Socket Emission (for isolated Worker processes)
+  try {
+    const subscriber = getRedisSubscriber();
+    subscriber.subscribe('socket-emits', (err) => {
+      if (err) console.error('❌ Redis Pub/Sub failed to subscribe to socket-emits', err);
+    });
+
+    subscriber.on('message', (channel, message) => {
+      if (channel === 'socket-emits') {
+        try {
+          console.log(`📡 [Redis PubSub] Received emit:`, message);
+          const { userId, room, event, data } = JSON.parse(message);
+          if (userId) io.to(userId).emit(event, data);
+          if (room) io.to(room).emit(event, data);
+        } catch (e) {
+          console.error('Failed to parse socket-emits payload:', e);
+        }
+      }
+    });
+    console.log('✅ Socket.io Redis Pub/Sub listener active');
+  } catch (err) {
+    console.warn('⚠️ Could not connect Redis Pub/Sub for sockets', err);
+  }
 
   return io;
 };

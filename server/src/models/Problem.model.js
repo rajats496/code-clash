@@ -33,7 +33,7 @@ const problemSchema = new mongoose.Schema(
     testCases: [testCaseSchema],
     languagesAllowed: {
       type: [Number], // Judge0 language IDs (e.g., [71, 63] for Python, JS)
-      default: [71, 63, 62, 54], // Python, JS, Java, C++
+      default: [71, 63, 62, 54, 50, 998, 999], // Python, JS, Java, C++, C, Fortran, D
     },
     timeLimit: {
       type: Number,

@@ -1,6 +1,7 @@
 import express from 'express';
 import { Problem } from '../models/Problem.model.js';
 import { Submission } from '../models/Submission.model.js';
+import { authenticateToken, requireAdmin } from '../middleware/auth.middleware.js';
 
 const router = express.Router();
 
@@ -37,6 +38,37 @@ router.get('/', async (req, res) => {
         res.json({ success: true, total, problems: formatted });
     } catch (error) {
         console.error('❌ GET /api/problems error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+/**
+ * POST /api/problems
+ * Create a new problem (Admin only).
+ */
+router.post('/', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const { title, description, difficulty, timeLimit, memoryLimit, languagesAllowed, testCases } = req.body;
+
+        if (!title || !description) {
+            return res.status(400).json({ success: false, message: 'Title and description are required' });
+        }
+
+        const newProblem = new Problem({
+            title,
+            description,
+            difficulty: difficulty || 'medium',
+            timeLimit: timeLimit || 2,
+            memoryLimit: memoryLimit || 256,
+            languagesAllowed: languagesAllowed || [71, 63, 62, 54, 50, 998, 999],
+            testCases: testCases || [],
+        });
+
+        await newProblem.save();
+
+        res.status(201).json({ success: true, problem: newProblem });
+    } catch (error) {
+        console.error('❌ POST /api/problems error:', error);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 });

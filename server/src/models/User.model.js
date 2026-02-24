@@ -1,12 +1,13 @@
 import mongoose from 'mongoose';
+import bcrypt from 'bcryptjs';
 
 const userSchema = new mongoose.Schema(
   {
     googleId: {
       type: String,
-      required: true,
       unique: true,
-      index: true, // Fast lookup during login
+      sparse: true,   // Allow null — email-only users don't have googleId
+      index: true,
     },
     email: {
       type: String,
@@ -17,8 +18,17 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    password: {
+      type: String,   // bcrypt hash — null for Google-only users
+      select: false,  // Don't include in queries by default
+    },
     picture: {
-      type: String, // Google profile picture URL
+      type: String,
+    },
+    role: {
+      type: String,
+      enum: ['user', 'admin'],
+      default: 'user',
     },
     rating: {
       type: Number,
@@ -43,5 +53,18 @@ const userSchema = new mongoose.Schema(
   },
   { timestamps: true } // createdAt, updatedAt
 );
+
+// Hash password before saving (only if modified)
+userSchema.pre('save', async function (next) {
+  if (!this.isModified('password') || !this.password) return next();
+  this.password = await bcrypt.hash(this.password, 12);
+  next();
+});
+
+// Compare plain password to hashed password
+userSchema.methods.comparePassword = async function (candidatePassword) {
+  if (!this.password) return false;
+  return bcrypt.compare(candidatePassword, this.password);
+};
 
 export const User = mongoose.model('User', userSchema);

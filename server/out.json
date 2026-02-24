@@ -1,0 +1,20 @@
+{
+  "verdict": "Compilation Error",
+  "allTestsPassed": false,
+  "testResults": [
+    {
+      "testCase": 1,
+      "passed": false,
+      "verdict": "Compilation Error",
+      "expectedOutput": "123",
+      "actualOutput": "",
+      "stderr": "file0.code.cpp:1:9: fatal error: bits/stc++.h: No such file or directory\n    1 | #include<bits/stc++.h>\n      |         ^~~~~~~~~~~~~~\ncompilation terminated.\nchmod: cannot access 'a.out': No such file or directory",
+      "time": "1101 ms"
+    }
+  ],
+  "totalTests": 1,
+  "passedTests": 0,
+  "runtime": "0 ms",
+  "memory": null,
+  "compilationError": "file0.code.cpp:1:9: fatal error: bits/stc++.h: No such file or directory\n    1 | #include<bits/stc++.h>\n      |         ^~~~~~~~~~~~~~\ncompilation terminated.\nchmod: cannot access 'a.out': No such file or directory"
+}

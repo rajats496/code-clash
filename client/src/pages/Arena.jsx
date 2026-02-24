@@ -6,28 +6,31 @@ import MatchTimer from '../components/arena/MatchTimer';
 import MatchEndModal from '../components/arena/MatchEndModal';
 import { getSocket } from '../services/socket';
 import Editor from '@monaco-editor/react';
+import { CheckIcon, CrossIcon, ClockIcon, FlameIcon, SparklesIcon, TrophyIcon, CopyIcon, ArrowLeftIcon } from '../components/common/Icons';
 
 // ── Verdict colour helper ─────────────────────────────────────────────────────
 const vStyle = (v) => {
-  if (v === 'Accepted')                          return { color: '#00b8a3', bg: 'rgba(0,184,163,0.08)',    border: 'rgba(0,184,163,0.35)',    icon: '✓' };
-  if (v === 'processing' || v === 'pending')     return { color: '#fbbf24', bg: 'rgba(251,191,36,0.08)',  border: 'rgba(251,191,36,0.35)',  icon: '…' };
-  if (v === 'Compilation Error')                 return { color: '#f97316', bg: 'rgba(249,115,22,0.08)',  border: 'rgba(249,115,22,0.35)',  icon: '⚙' };
-  if (v === 'Time Limit Exceeded')               return { color: '#f59e0b', bg: 'rgba(245,158,11,0.08)',  border: 'rgba(245,158,11,0.35)',  icon: '⏱' };
-  if (v === 'Runtime Error')                     return { color: '#f87171', bg: 'rgba(248,113,113,0.08)', border: 'rgba(248,113,113,0.35)', icon: '💥' };
-  if (v === 'Wrong Answer')                      return { color: '#f87171', bg: 'rgba(248,113,113,0.08)', border: 'rgba(248,113,113,0.35)', icon: '✗' };
-  return                                                { color: '#9ca3af', bg: 'transparent',             border: 'var(--lc-border)',      icon: '?' };
+  if (v === 'Accepted') return { color: '#00b8a3', bg: 'rgba(0,184,163,0.08)', border: 'rgba(0,184,163,0.35)', icon: <CheckIcon size={16} /> };
+  if (v === 'processing' || v === 'pending') return { color: '#fbbf24', bg: 'rgba(251,191,36,0.08)', border: 'rgba(251,191,36,0.35)', icon: <span className="animate-pulse">…</span> };
+  if (v === 'Compilation Error') return { color: '#f97316', bg: 'rgba(249,115,22,0.08)', border: 'rgba(249,115,22,0.35)', icon: <SparklesIcon size={16} /> };
+  if (v === 'Time Limit Exceeded') return { color: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.35)', icon: <ClockIcon size={16} /> };
+  if (v === 'Runtime Error') return { color: '#f87171', bg: 'rgba(248,113,113,0.08)', border: 'rgba(248,113,113,0.35)', icon: <FlameIcon size={16} /> };
+  if (v === 'Wrong Answer') return { color: '#f87171', bg: 'rgba(248,113,113,0.08)', border: 'rgba(248,113,113,0.35)', icon: <CrossIcon size={16} /> };
+  return { color: '#9ca3af', bg: 'transparent', border: 'var(--lc-border)', icon: '?' };
 };
 
-// ── Language map ───────────────────────────────────────────────────────────────
 const LANGS = [
-  { id: 71, short: 'PY',   label: 'Python',      mono: 'python'     },
-  { id: 63, short: 'JS',   label: 'JavaScript',  mono: 'javascript' },
-  { id: 62, short: 'Java', label: 'Java',         mono: 'java'       },
-  { id: 54, short: 'C++',  label: 'C++',          mono: 'cpp'        },
+  { id: 71, short: 'PY', label: 'Python', mono: 'python' },
+  { id: 63, short: 'JS', label: 'JavaScript', mono: 'javascript' },
+  { id: 62, short: 'Java', label: 'Java', mono: 'java' },
+  { id: 54, short: 'C++', label: 'C++', mono: 'cpp' },
+  { id: 50, short: 'C', label: 'C', mono: 'c' },
+  { id: 998, short: 'Fortran', label: 'Fortran', mono: 'plaintext' },
+  { id: 999, short: 'D', label: 'D', mono: 'plaintext' },
 ];
 
 // ── Resizable Editor + Result Panel ──
-const ResizablePanels = ({ submissionStatus, language, code, setCode, matchState }) => {
+const ResizablePanels = ({ submissionStatus, language, code, setCode, matchState, onSubmit }) => {
   const containerRef = useRef(null);
   const [editorHeight, setEditorHeight] = useState(100);
   const isDragging = useRef(false);
@@ -82,7 +85,9 @@ const ResizablePanels = ({ submissionStatus, language, code, setCode, matchState
   const monacoLang =
     language === 71 ? 'python' :
       language === 63 ? 'javascript' :
-        language === 54 ? 'cpp' : 'java';
+        language === 50 ? 'c' :
+          language === 54 ? 'cpp' :
+            (language === 998 || language === 999) ? 'plaintext' : 'java';
 
   return (
     <div ref={containerRef} className="flex-1 flex flex-col overflow-hidden min-h-0">
@@ -93,6 +98,22 @@ const ResizablePanels = ({ submissionStatus, language, code, setCode, matchState
           language={monacoLang}
           value={code}
           theme="vs-dark"
+          onMount={(editor, monaco) => {
+            // Ctrl+Enter — Submit code
+            editor.addAction({
+              id: 'submit-code',
+              label: 'Submit Code',
+              keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter],
+              run: () => onSubmit?.(),
+            });
+            // Ctrl+S — Prevent browser save dialog (code already auto-saves)
+            editor.addAction({
+              id: 'save-code',
+              label: 'Save Code',
+              keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS],
+              run: () => { /* code auto-saves on every keystroke */ },
+            });
+          }}
           onChange={(newCode) => {
             setCode(newCode || '');
             const stored = JSON.parse(localStorage.getItem('currentMatch') || '{}');
@@ -133,9 +154,9 @@ const ResizablePanels = ({ submissionStatus, language, code, setCode, matchState
       )}
 
       {submissionStatus && (() => {
-        const v   = submissionStatus.status;
-        const vs  = vStyle(v);
-        const isCE      = v === 'Compilation Error';
+        const v = submissionStatus.status;
+        const vs = vStyle(v);
+        const isCE = v === 'Compilation Error';
         const isLoading = v === 'processing' || v === 'pending';
         return (
           <div
@@ -206,7 +227,7 @@ const ResizablePanels = ({ submissionStatus, language, code, setCode, matchState
                       <div className="flex items-center gap-2.5">
                         <span className="w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-black"
                           style={{ backgroundColor: test.passed ? 'rgba(0,184,163,0.15)' : 'rgba(248,113,113,0.15)', color: test.passed ? '#00b8a3' : '#f87171' }}>
-                          {test.passed ? '✓' : '✗'}
+                          {test.passed ? <CheckIcon size={12} /> : <CrossIcon size={12} />}
                         </span>
                         <span className="text-xs font-mono font-bold" style={{ color: test.passed ? '#00b8a3' : '#f87171' }}>Test {test.testCase}</span>
                         {test.time && <span className="text-[10px] font-mono text-gray-500">{test.time}</span>}
@@ -301,7 +322,7 @@ const Arena = () => {
     const time = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
     setEventLog(prev => {
       const next = [{ time, msg, color }, ...prev].slice(0, 30);
-      try { localStorage.setItem(getLogKey(), JSON.stringify(next)); } catch {}
+      try { localStorage.setItem(getLogKey(), JSON.stringify(next)); } catch { }
       return next;
     });
   };
@@ -340,7 +361,7 @@ const Arena = () => {
           setCode('// Write your code here\n');
           setMatchData(prev => ({ ...prev, ...stored }));
         }
-      } catch {}
+      } catch { }
     };
     window.addEventListener('storage', handleStorage);
     return () => window.removeEventListener('storage', handleStorage);
@@ -352,9 +373,9 @@ const Arena = () => {
       const stored = JSON.parse(localStorage.getItem('currentMatch') || '{}');
       if (stored.currentProblem && currentRound > 0) {
         setActiveProblem(stored.currentProblem);
-        setCode('// Write your code here\n');        setOpponentStatus('idle');        addEvent('Round ' + (currentRound + 1) + ' started.', '#ffa116');
+        setCode('// Write your code here\n'); setOpponentStatus('idle'); addEvent('Round ' + (currentRound + 1) + ' started.', '#ffa116');
       }
-    } catch {}
+    } catch { }
   }, [currentRound]);
 
   useEffect(() => {
@@ -368,7 +389,7 @@ const Arena = () => {
     try {
       const stored = JSON.parse(localStorage.getItem('currentMatch') || '{}');
       if (stored.roomId) localStorage.removeItem('eventLog_' + stored.roomId);
-    } catch {}
+    } catch { }
   }, [matchEndResult, navigate]);
 
   // Track opponent live typing activity
@@ -425,7 +446,7 @@ const Arena = () => {
     }
   }, [roundWonResult]);
 
-  const handleSubmit = () => submitCode(code, language);
+  const handleSubmit = (isSubmit = true) => submitCode(code, language, isSubmit);
 
   if (!matchData || !activeProblem) {
     return (
@@ -494,7 +515,7 @@ const Arena = () => {
             <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0"
               style={{ background: 'linear-gradient(135deg,#ffa116,#ff7a00)' }}>
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" strokeWidth="2.5" strokeLinecap="round">
-                <circle cx="12" cy="12" r="9"/><polyline points="12,6 12,12 15.5,14"/>
+                <circle cx="12" cy="12" r="9" /><polyline points="12,6 12,12 15.5,14" />
               </svg>
             </div>
             <MatchTimer />
@@ -507,7 +528,7 @@ const Arena = () => {
           {user?.picture
             ? <img src={user.picture} alt="" className="w-7 h-7 rounded-full" style={{ border: '2px solid var(--lc-border)' }} />
             : <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white"
-                style={{ background: 'linear-gradient(135deg,#ffa116,#ff7a00)' }}>{user?.name?.[0] || 'Y'}</div>
+              style={{ background: 'linear-gradient(135deg,#ffa116,#ff7a00)' }}>{user?.name?.[0] || 'Y'}</div>
           }
         </div>
       </header>
@@ -517,7 +538,7 @@ const Arena = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)' }}>
           <div className="rounded-2xl p-8 text-center w-80 shadow-2xl"
             style={{ backgroundColor: 'var(--lc-nav)', border: '1px solid var(--lc-border)', boxShadow: '0 0 60px rgba(255,161,22,0.12)' }}>
-            <div className="text-6xl mb-4">{roundWonResult.winnerId === userId ? '🏆' : '😤'}</div>
+            <div className="flex justify-center mb-4">{roundWonResult.winnerId === userId ? <TrophyIcon size={64} className="text-[#ffa116]" /> : <FlameIcon size={64} className="text-red-500 opacity-60" />}</div>
             <h2 className="text-xl font-black text-white mb-1">
               {roundWonResult.winnerId === userId ? 'Round Won!' : 'Round Lost'}
             </h2>
@@ -682,7 +703,7 @@ const Arena = () => {
             style={{ backgroundColor: 'var(--lc-nav)', borderBottom: '1px solid var(--lc-border)' }}>
             <div className="flex items-center gap-0.5 rounded-lg p-0.5"
               style={{ backgroundColor: 'var(--lc-bg)', border: '1px solid var(--lc-border)' }}>
-              {[{id:71,s:'Python 3'},{id:63,s:'JavaScript'},{id:62,s:'Java'},{id:54,s:'C++'}].map(l => (
+              {[{ id: 71, s: 'Python 3' }, { id: 63, s: 'JavaScript' }, { id: 62, s: 'Java' }, { id: 54, s: 'C++' }].map(l => (
                 <button key={l.id} onClick={() => setLanguage(l.id)}
                   className="px-3 py-1 text-[11px] font-mono font-bold rounded-md transition-all duration-200"
                   style={language === l.id
@@ -700,16 +721,16 @@ const Arena = () => {
                 </span>
               )}
               <button className="p-1.5 rounded-md text-gray-500 hover:text-gray-300 hover:bg-white/5 transition-all" title="Settings">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
               </button>
               <button className="p-1.5 rounded-md text-gray-500 hover:text-gray-300 hover:bg-white/5 transition-all" title="Fullscreen">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15,3 21,3 21,9"/><polyline points="9,21 3,21 3,15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15,3 21,3 21,9" /><polyline points="9,21 3,21 3,15" /><line x1="21" y1="3" x2="14" y2="10" /><line x1="3" y1="21" x2="10" y2="14" /></svg>
               </button>
             </div>
           </div>
 
           {/* Resizable Editor + Results */}
-          <ResizablePanels submissionStatus={submissionStatus} language={language} code={code} setCode={setCode} matchState={matchState} />
+          <ResizablePanels submissionStatus={submissionStatus} language={language} code={code} setCode={setCode} matchState={matchState} onSubmit={handleSubmit} />
 
           {/* Bottom action bar */}
           <div className="flex items-center justify-between px-3 py-2 shrink-0"
@@ -719,13 +740,13 @@ const Arena = () => {
             </span>
             <div className="flex items-center gap-2">
               <button
-                onClick={handleSubmit}
+                onClick={() => handleSubmit(false)}
                 disabled={submissionStatus?.status === 'processing' || submissionStatus?.status === 'pending'}
                 className="px-4 py-1.5 rounded-lg text-xs font-mono font-bold transition-all hover:opacity-80 disabled:opacity-40"
                 style={{ backgroundColor: 'var(--lc-card)', border: '1px solid var(--lc-border)', color: '#9ca3af' }}>
                 Run
               </button>
-              <button onClick={handleSubmit}
+              <button onClick={() => handleSubmit(true)}
                 disabled={submissionStatus?.status === 'processing' || submissionStatus?.status === 'pending'}
                 className="flex items-center gap-1.5 px-5 py-1.5 rounded-lg text-xs font-mono font-bold transition-all hover:opacity-90 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ background: 'linear-gradient(135deg,#ffa116,#ff7a00)', color: '#1a1a1a', boxShadow: '0 0 12px rgba(255,161,22,0.25)' }}>
@@ -758,28 +779,28 @@ const Arena = () => {
               style={{ backgroundColor: 'var(--lc-nav)', border: '1px solid var(--lc-border)' }}>
               {matchData?.opponent?.picture
                 ? <img src={matchData.opponent.picture} alt="" className="w-10 h-10 rounded-full shrink-0"
-                    style={{ border: '2px solid #f87171', boxShadow: '0 0 10px rgba(248,113,113,0.2)' }} />
+                  style={{ border: '2px solid #f87171', boxShadow: '0 0 10px rgba(248,113,113,0.2)' }} />
                 : <div className="w-10 h-10 rounded-full flex items-center justify-center font-black text-sm text-white shrink-0"
-                    style={{ background: 'linear-gradient(135deg,#f87171,#dc2626)' }}>
-                    {opponentName[0]}
-                  </div>
+                  style={{ background: 'linear-gradient(135deg,#f87171,#dc2626)' }}>
+                  {opponentName[0]}
+                </div>
               }
               <div className="min-w-0">
                 <p className="text-xs font-bold text-white font-mono truncate">@{opponentName}</p>
                 <p className="text-[10px] font-mono mt-0.5"
                   style={{
                     color: opponentStatus === 'typing' ? '#ffa116'
-                         : opponentStatus === 'solved' ? '#00b8a3'
-                         : matchState?.status === 'in-progress' ? '#6b7280'
-                         : '#4b5563'
+                      : opponentStatus === 'solved' ? '#00b8a3'
+                        : matchState?.status === 'in-progress' ? '#6b7280'
+                          : '#4b5563'
                   }}>
                   {opponentStatus === 'typing'
                     ? '● Coding...'
                     : opponentStatus === 'solved'
-                    ? '✓ Solved!'
-                    : matchState?.status === 'in-progress'
-                    ? '○ Connected'
-                    : '○ Waiting'}
+                      ? <span className="flex items-center gap-1"><CheckIcon size={14} /> Solved!</span>
+                      : matchState?.status === 'in-progress'
+                        ? '○ Connected'
+                        : '○ Waiting'}
                 </p>
               </div>
             </div>
@@ -885,7 +906,7 @@ const Arena = () => {
                   const socket = getSocket();
                   const stored = JSON.parse(localStorage.getItem('currentMatch') || '{}');
                   if (socket && stored.roomId) socket.emit('leave-match', { roomId: stored.roomId });
-                  try { localStorage.removeItem('eventLog_' + (stored.roomId || 'default')); } catch {}
+                  try { localStorage.removeItem('eventLog_' + (stored.roomId || 'default')); } catch { }
                   localStorage.removeItem('currentMatch');
                   sessionStorage.removeItem('currentTimer');
                   resetMatchState();

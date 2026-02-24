@@ -1,0 +1,160 @@
+# ============================================================================
+# CodeClash — Code Execution Infrastructure
+# ============================================================================
+# Usage:
+#   docker-compose -f docker-compose.judge0.yml up -d
+#
+# Services:
+#   - Piston (code execution engine) → http://localhost:2000
+#   - Judge0 (optional, needs Linux host) → http://localhost:2358
+#   - App Redis (BullMQ + Leaderboard) → localhost:6380
+# ============================================================================
+
+services:
+  # ── Piston (Primary Code Execution — works on Windows/Mac/Linux) ──────
+  piston:
+    image: ghcr.io/engineer-man/piston:latest
+    ports:
+      - "2000:2000"
+    privileged: true
+    restart: unless-stopped
+    environment:
+      - PISTON_RUN_TIMEOUT=60000        # 60s max (needed for batched 100-test-case runs)
+      - PISTON_COMPILE_TIMEOUT=15000    # 15s compile
+      - PISTON_OUTPUT_MAX_SIZE=1048576  # 1MB output (100 test cases produce more)
+    tmpfs:
+      - /piston/jobs:exec,size=256M
+    volumes:
+      - piston-packages:/piston/packages
+
+  # ── Judge0 Server (Optional — only works on Linux hosts) ──────────────
+  judge0-server:
+    image: judge0/judge0:latest
+    ports:
+      - "2358:2358"
+    privileged: true
+    depends_on:
+      judge0-db:
+        condition: service_healthy
+      judge0-redis:
+        condition: service_healthy
+    environment:
+      # PostgreSQL (Judge0 internal DB)
+      POSTGRES_HOST: judge0-db
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: judge0
+      POSTGRES_USER: judge0
+      POSTGRES_PASSWORD: judge0_password
+
+      # Redis (Judge0 internal queue)
+      REDIS_HOST: judge0-redis
+      REDIS_PORT: 6379
+
+      # Execution limits (tune for contest)
+      CPU_TIME_LIMIT: 5            # seconds per execution
+      CPU_EXTRA_TIME: 1            # grace period
+      WALL_TIME_LIMIT: 15          # wall-clock limit
+      MEMORY_LIMIT: 262144         # 256 MB in KB
+      STACK_LIMIT: 65536           # 64 MB stack
+      MAX_PROCESSES_AND_OR_THREADS: 60
+      MAX_FILE_SIZE: 4096          # 4 MB output limit
+      ENABLE_NETWORK: "false"      # CRITICAL: no network for submitted code
+
+      # Worker config
+      RAILS_MAX_THREADS: 16        # concurrent submission processing
+      ENABLE_BATCHED_SUBMISSIONS: "true"
+      MAINTENANCE_MODE: "false"
+
+      # Disable auth for internal use (behind firewall)
+      AUTHN_HEADER: ""
+      AUTHN_TOKEN: ""
+      AUTHZ_HEADER: ""
+      AUTHZ_TOKEN: ""
+    restart: unless-stopped
+    volumes:
+      - judge0-tmp:/tmp
+
+  # ── Judge0 Workers ────────────────────────────────────────────────────
+  judge0-workers:
+    image: judge0/judge0:latest
+    command: ["./scripts/workers"]
+    privileged: true
+    depends_on:
+      judge0-db:
+        condition: service_healthy
+      judge0-redis:
+        condition: service_healthy
+    environment:
+      POSTGRES_HOST: judge0-db
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: judge0
+      POSTGRES_USER: judge0
+      POSTGRES_PASSWORD: judge0_password
+      REDIS_HOST: judge0-redis
+      REDIS_PORT: 6379
+      CPU_TIME_LIMIT: 5
+      CPU_EXTRA_TIME: 1
+      WALL_TIME_LIMIT: 15
+      MEMORY_LIMIT: 262144
+      STACK_LIMIT: 65536
+      MAX_PROCESSES_AND_OR_THREADS: 60
+      MAX_FILE_SIZE: 4096
+      ENABLE_NETWORK: "false"
+      RAILS_MAX_THREADS: 16
+      ENABLE_BATCHED_SUBMISSIONS: "true"
+    restart: unless-stopped
+    deploy:
+      replicas: 2    # Scale up for more concurrent executions
+    volumes:
+      - judge0-tmp:/tmp
+
+  # ── PostgreSQL (Judge0 internal) ──────────────────────────────────────
+  judge0-db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: judge0
+      POSTGRES_USER: judge0
+      POSTGRES_PASSWORD: judge0_password
+    volumes:
+      - judge0-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U judge0"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # ── Redis (Judge0 internal queue) ─────────────────────────────────────
+  judge0-redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - judge0-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # ── Redis (Application — BullMQ + Leaderboard) ───────────────────────
+  app-redis:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    volumes:
+      - app-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  judge0-postgres-data:
+  judge0-redis-data:
+  judge0-tmp:
+  app-redis-data:
+  piston-packages:

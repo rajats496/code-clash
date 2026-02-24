@@ -5,6 +5,8 @@ import testRoutes from './routes/test.routes.js';
 import matchRoutes from './routes/match.routes.js';
 import userRoutes from './routes/user.routes.js';
 import problemRoutes from './routes/problem.routes.js';
+import contestRoutes from './routes/contest.routes.js';
+import reportRoutes  from './routes/report.routes.js';
 
 const app = express();
 
@@ -29,8 +31,10 @@ app.use('/api/test', testRoutes);
 app.use('/api/matches', matchRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/problems', problemRoutes);
+app.use('/api/contests', contestRoutes);
+app.use('/api/reports',  reportRoutes);
 
-console.log('✅ Routes registered: /api/auth, /api/test, /api/matches, /api/users, /api/problems');
+console.log('✅ Routes registered: /api/auth, /api/test, /api/matches, /api/users, /api/problems, /api/contests, /api/reports');
 
 // 404 handler
 app.use((req, res) => {

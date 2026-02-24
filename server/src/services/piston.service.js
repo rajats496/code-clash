@@ -10,8 +10,11 @@
  */
 
 import axios from 'axios';
+import dotenv from 'dotenv';
+dotenv.config();
 
-const PISTON_URL = 'https://emkc.org/api/v2/piston/execute';
+const PISTON_BASE = process.env.PISTON_URL || 'http://localhost:2000';
+const PISTON_URL = `${PISTON_BASE}/api/v2/execute`;
 const TIMEOUT_MS = 15000;
 
 // ─────────────────────────────────────────────
@@ -19,11 +22,11 @@ const TIMEOUT_MS = 15000;
 // ─────────────────────────────────────────────
 const LANG_MAP = {
   63: { language: 'javascript', version: '*' },
-  71: { language: 'python',     version: '*' },
-  62: { language: 'java',       version: '*' },
-  54: { language: 'c++',        version: '*' },
-  50: { language: 'c',          version: '*' },
-  51: { language: 'csharp',     version: '*' },
+  71: { language: 'python', version: '*' },
+  62: { language: 'java', version: '*' },
+  54: { language: 'c++', version: '*' },
+  50: { language: 'c', version: '*' },
+  51: { language: 'csharp', version: '*' },
 };
 
 const getLang = (languageId) =>
@@ -71,17 +74,17 @@ export const executeCode = async (sourceCode, languageId, stdin = '') => {
 
   if (compileErr) {
     return {
-      verdict:        'Compilation Error',
-      stdout:         '',
-      stderr:         compileErr,
+      verdict: 'Compilation Error',
+      stdout: '',
+      stderr: compileErr,
       compile_output: compileErr,
-      exitCode:       1,
+      exitCode: 1,
     };
   }
 
   if (exited && !stdout) {
     return {
-      verdict:  'Runtime Error',
+      verdict: 'Runtime Error',
       stdout,
       stderr,
       compile_output: '',
@@ -90,11 +93,11 @@ export const executeCode = async (sourceCode, languageId, stdin = '') => {
   }
 
   return {
-    verdict:        'Accepted',
+    verdict: 'Accepted',
     stdout,
     stderr,
     compile_output: '',
-    exitCode:       0,
+    exitCode: 0,
   };
 };
 
@@ -105,15 +108,15 @@ export const runTestCases = async (sourceCode, languageId, testCases) => {
   const { language } = getLang(languageId);
   console.log(`⚡ Piston: running ${testCases.length} test case(s) | lang=${language}`);
 
-  const testResults  = [];
-  let passedTests    = 0;
-  let firstFailure   = null;
+  const testResults = [];
+  let passedTests = 0;
+  let firstFailure = null;
   let compilationErr = null;
-  let totalTimeMs    = 0;
+  let totalTimeMs = 0;
 
   for (let i = 0; i < testCases.length; i++) {
-    const tc  = testCases[i];
-    const t0  = Date.now();
+    const tc = testCases[i];
+    const t0 = Date.now();
 
     try {
       const data = await runOnPiston(sourceCode, languageId, tc.input);
@@ -125,19 +128,19 @@ export const runTestCases = async (sourceCode, languageId, testCases) => {
 
         for (let j = i; j < testCases.length; j++) {
           testResults.push({
-            testCase:       j + 1,
-            passed:         false,
-            verdict:        'Compilation Error',
+            testCase: j + 1,
+            passed: false,
+            verdict: 'Compilation Error',
             expectedOutput: testCases[j].expectedOutput,
-            actualOutput:   '',
-            stderr:         j === i ? errMsg : '',
+            actualOutput: '',
+            stderr: j === i ? errMsg : '',
           });
         }
         break;
       }
 
-      const run            = data.run || {};
-      const actualOutput   = normalizeOutput(run.stdout);
+      const run = data.run || {};
+      const actualOutput = normalizeOutput(run.stdout);
       const expectedOutput = normalizeOutput(tc.expectedOutput);
 
       // ── Runtime error ──────────────────────────────────────────
@@ -146,13 +149,13 @@ export const runTestCases = async (sourceCode, languageId, testCases) => {
         const verdict = run.signal === 'SIGKILL' ? 'Time Limit Exceeded' : 'Runtime Error';
 
         testResults.push({
-          testCase:       i + 1,
-          passed:         false,
+          testCase: i + 1,
+          passed: false,
           verdict,
           expectedOutput: tc.expectedOutput,
-          actualOutput:   '',
-          stderr:         errMsg,
-          time:           `${Date.now() - t0} ms`,
+          actualOutput: '',
+          stderr: errMsg,
+          time: `${Date.now() - t0} ms`,
         });
 
         if (!firstFailure) firstFailure = verdict;
@@ -164,16 +167,16 @@ export const runTestCases = async (sourceCode, languageId, testCases) => {
       const verdict = passed ? 'Accepted' : 'Wrong Answer';
 
       const elapsed = Date.now() - t0;
-      totalTimeMs  += elapsed;
+      totalTimeMs += elapsed;
 
       testResults.push({
-        testCase:       i + 1,
+        testCase: i + 1,
         passed,
         verdict,
         expectedOutput: tc.expectedOutput,
-        actualOutput:   run.stdout || '',
-        stderr:         run.stderr || '',
-        time:           `${elapsed} ms`,
+        actualOutput: run.stdout || '',
+        stderr: run.stderr || '',
+        time: `${elapsed} ms`,
       });
 
       if (passed) {
@@ -186,12 +189,12 @@ export const runTestCases = async (sourceCode, languageId, testCases) => {
       console.error(`❌ Piston error on test case ${i + 1}:`, err.message);
 
       testResults.push({
-        testCase:       i + 1,
-        passed:         false,
-        verdict:        'Runtime Error',
+        testCase: i + 1,
+        passed: false,
+        verdict: 'Runtime Error',
         expectedOutput: tc.expectedOutput,
-        actualOutput:   '',
-        stderr:         err.message,
+        actualOutput: '',
+        stderr: err.message,
       });
 
       if (!firstFailure) firstFailure = 'Runtime Error';
@@ -206,7 +209,7 @@ export const runTestCases = async (sourceCode, languageId, testCases) => {
       ? 'Accepted'
       : firstFailure || 'Wrong Answer';
 
-  const avgMs  = testResults.length > 0 ? Math.round(totalTimeMs / testResults.length) : null;
+  const avgMs = testResults.length > 0 ? Math.round(totalTimeMs / testResults.length) : null;
   const runtime = avgMs != null ? `${avgMs} ms` : null;
 
   console.log(
@@ -215,13 +218,13 @@ export const runTestCases = async (sourceCode, languageId, testCases) => {
   );
 
   return {
-    verdict:          overallVerdict,
+    verdict: overallVerdict,
     allTestsPassed,
     testResults,
-    totalTests:       testCases.length,
+    totalTests: testCases.length,
     passedTests,
     runtime,
-    memory:           null, // Piston doesn't report memory
+    memory: null, // Piston doesn't report memory
     compilationError: compilationErr,
   };
 };

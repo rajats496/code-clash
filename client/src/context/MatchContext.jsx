@@ -138,13 +138,14 @@ export const MatchProvider = ({ children }) => {
     socket.on('submission-result', (data) => {
       console.log('📊 Submission result:', data);
       setSubmissionStatus({
-        status:           data.verdict,
-        message:          data.message,
-        testResults:      data.testResults,
-        allPassed:        data.allPassed,
-        runtime:          data.runtime          || null,
-        memory:           data.memory           || null,
+        status: data.verdict,
+        message: data.message,
+        testResults: data.testResults,
+        allPassed: data.allPassed,
+        runtime: data.runtime || null,
+        memory: data.memory || null,
         compilationError: data.compilationError || null,
+        isSubmit: data.isSubmit,
       });
     });
 
@@ -334,10 +335,10 @@ export const MatchProvider = ({ children }) => {
     socket.emit('code-update', { code, language });
   };
 
-  const submitCode = (code, language) => {
+  const submitCode = (code, language, isSubmit) => {
     const socket = getSocket();
     if (!socket) return;
-    socket.emit('submit-code', { code, language });
+    socket.emit('submit-code', { code, language, isSubmit });
     setSubmissionStatus({ status: 'pending', message: 'Submitting...' });
   };
 

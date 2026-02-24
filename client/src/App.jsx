@@ -12,6 +12,12 @@ import PostMatchChat from './pages/PostMatchChat';
 import Tournament from './pages/Tournament';
 import Leaderboard from './pages/Leaderboard';
 import Friends from './pages/Friends';
+import ContestList from './pages/ContestList';
+import ContestDetail from './pages/ContestDetail';
+import ContestArena from './pages/ContestArena';
+import CreateContest from './pages/CreateContest';
+import CreateProblem from './pages/CreateProblem';
+import Signup from './pages/Signup';
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
@@ -25,6 +31,23 @@ const ProtectedRoute = ({ children }) => {
   }
 
   return isAuthenticated ? children : <Navigate to="/login" />;
+};
+
+/** Route restricted to admin users only */
+const AdminRoute = ({ children }) => {
+  const { isAuthenticated, loading, user } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-2xl">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) return <Navigate to="/login" />;
+  if (user?.role !== 'admin') return <Navigate to="/contests" />;
+  return children;
 };
 
 /**
@@ -74,6 +97,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
             <Route
               path="/history"
               element={
@@ -107,6 +131,39 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Matchmaking />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="/contests" element={<ContestList />} />
+            <Route
+              path="/contests/create"
+              element={
+                <AdminRoute>
+                  <CreateContest />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/problems/new"
+              element={
+                <AdminRoute>
+                  <CreateProblem />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/contests/:id"
+              element={
+                <ProtectedRoute>
+                  <ContestDetail />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/contests/:id/arena"
+              element={
+                <ProtectedRoute>
+                  <ContestArena />
                 </ProtectedRoute>
               }
             />

@@ -4,6 +4,7 @@ import AppShell from '../components/layout/AppShell';
 import api from '../services/api';
 import TournamentBanner from '../components/dashboard/TournamentBanner';
 import UpcomingClashes from '../components/dashboard/UpcomingClashes';
+import { LightningIcon, TrophyIcon, FlameIcon, TargetIcon } from '../components/common/Icons';
 
 const Tournament = () => {
   const { isAuthenticated } = useAuth();
@@ -35,8 +36,8 @@ const Tournament = () => {
           {/* Upcoming Tournaments Section */}
           <div>
             <div className="mb-6">
-              <h2 className="text-3xl font-bold mb-2">
-                <span style={{ color: 'var(--lc-accent-orange)' }}>⚡</span> Ongoing Tournaments
+              <h2 className="text-3xl font-bold mb-2 flex items-center gap-2">
+                <LightningIcon className="text-[#ffa116]" size={32} /> Ongoing Tournaments
               </h2>
               <p className="text-gray-400">Join live tournaments and compete with players worldwide</p>
             </div>
@@ -49,7 +50,7 @@ const Tournament = () => {
                     <h3 className="text-lg font-bold mb-1">Spring Code Championship</h3>
                     <p className="text-xs text-gray-400">Tier: Professional</p>
                   </div>
-                  <span className="text-2xl">🏆</span>
+                  <TrophyIcon size={24} className="text-[#ffa116]" />
                 </div>
                 <div className="space-y-3 mb-4">
                   <div className="flex items-center justify-between text-sm">
@@ -77,7 +78,7 @@ const Tournament = () => {
                     <h3 className="text-lg font-bold mb-1">Weekly Speed Challenge</h3>
                     <p className="text-xs text-gray-400">Tier: Intermediate</p>
                   </div>
-                  <span className="text-2xl">⚡</span>
+                  <LightningIcon size={24} className="text-[#ffa116]" />
                 </div>
                 <div className="space-y-3 mb-4">
                   <div className="flex items-center justify-between text-sm">
@@ -105,7 +106,7 @@ const Tournament = () => {
                     <h3 className="text-lg font-bold mb-1">Beginner's Marathon</h3>
                     <p className="text-xs text-gray-400">Tier: Beginner</p>
                   </div>
-                  <span className="text-2xl">🎯</span>
+                  <TargetIcon size={24} className="text-[#ffa116]" />
                 </div>
                 <div className="space-y-3 mb-4">
                   <div className="flex items-center justify-between text-sm">
@@ -131,8 +132,8 @@ const Tournament = () => {
           {/* Available Clashes Section */}
           <div>
             <div className="mb-6">
-              <h2 className="text-3xl font-bold mb-2">
-                <span style={{ color: 'var(--lc-accent-orange)' }}>🔥</span> Available Clashes
+              <h2 className="text-3xl font-bold mb-2 flex items-center gap-2">
+                <FlameIcon className="text-[#ffa116]" size={32} /> Available Clashes
               </h2>
               <p className="text-gray-400">Quick 1-on-1 competitive matches</p>
             </div>

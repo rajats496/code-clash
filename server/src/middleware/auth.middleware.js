@@ -10,9 +10,6 @@ export const authenticateToken = async (req, res, next) => {
     // Get token from header
     const authHeader = req.headers.authorization;
 
-    // ADD THIS LINE TEMPORARILY
-    console.log('🔑 JWT_SECRET loaded:', process.env.JWT_SECRET ? 'YES - ' + process.env.JWT_SECRET.substring(0, 10) + '...' : 'NO - UNDEFINED');
-    
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({ error: 'No token provided' });
     }
@@ -37,3 +34,14 @@ export const authenticateToken = async (req, res, next) => {
     res.status(401).json({ error: 'Invalid or expired token' });
   }
 }
+
+/**
+ * Middleware to restrict access to admin users only.
+ * Must be used AFTER authenticateToken.
+ */
+export const requireAdmin = (req, res, next) => {
+  if (!req.user || req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  next();
+};
