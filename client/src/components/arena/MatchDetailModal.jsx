@@ -10,26 +10,26 @@ const LANG_NAMES = {
 };
 
 const VERDICT_STYLE = {
-  Accepted:                'text-emerald-400 bg-emerald-900/30 border-emerald-500/40',
-  'Wrong Answer':          'text-red-400    bg-red-900/30    border-red-500/40',
-  'Time Limit Exceeded':   'text-yellow-400 bg-yellow-900/30 border-yellow-500/40',
-  'Runtime Error':         'text-orange-400 bg-orange-900/30 border-orange-500/40',
-  'Compilation Error':     'text-pink-400   bg-pink-900/30   border-pink-500/40',
+  Accepted: 'text-emerald-400 bg-emerald-900/30 border-emerald-500/40',
+  'Wrong Answer': 'text-red-400    bg-red-900/30    border-red-500/40',
+  'Time Limit Exceeded': 'text-yellow-400 bg-yellow-900/30 border-yellow-500/40',
+  'Runtime Error': 'text-orange-400 bg-orange-900/30 border-orange-500/40',
+  'Compilation Error': 'text-pink-400   bg-pink-900/30   border-pink-500/40',
   'Memory Limit Exceeded': 'text-purple-400 bg-purple-900/30 border-purple-500/40',
-  Pending:                 'text-slate-400  bg-slate-700/30  border-slate-500/40',
+  Pending: 'text-slate-400  bg-slate-700/30  border-slate-500/40',
 };
 
 const DIFFICULTY_STYLE = {
-  easy:   'text-emerald-400 bg-emerald-900/30 border-emerald-500/40',
+  easy: 'text-emerald-400 bg-emerald-900/30 border-emerald-500/40',
   medium: 'text-yellow-400  bg-yellow-900/30  border-yellow-500/40',
-  hard:   'text-red-400     bg-red-900/30     border-red-500/40',
+  hard: 'text-red-400     bg-red-900/30     border-red-500/40',
 };
 
 const TABS = [
-  { id: 'overview',     label: '📊 Overview'    },
-  { id: 'problems',     label: '📝 Problems'     },
-  { id: 'submissions',  label: '💻 Code'         },
-  { id: 'performance',  label: '📈 Performance'  },
+  { id: 'overview', label: '📊 Overview' },
+  { id: 'problems', label: '📝 Problems' },
+  { id: 'submissions', label: '💻 Code' },
+  { id: 'performance', label: '📈 Performance' },
 ];
 
 const fmtTime = (s) => {
@@ -47,11 +47,11 @@ const fmtClock = (s) => {
 // ─────────────────────────────────────────────────────────────────────────────
 const MatchDetailModal = ({ matchId, isOpen, onClose }) => {
   const { token, user } = useAuth();
-  const [details, setDetails]             = useState(null);
-  const [loading, setLoading]             = useState(false);
-  const [fetchError, setFetchError]       = useState(null);
-  const [tab, setTab]                     = useState('overview');
-  const [expandedSub, setExpandedSub]     = useState(null);
+  const [details, setDetails] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [fetchError, setFetchError] = useState(null);
+  const [tab, setTab] = useState('overview');
+  const [expandedSub, setExpandedSub] = useState(null);
 
   // Fetch on open
   useEffect(() => {
@@ -62,7 +62,7 @@ const MatchDetailModal = ({ matchId, isOpen, onClose }) => {
     setTab('overview');
     setExpandedSub(null);
 
-    fetch(`/api/matches/${matchId}/details`, {
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/matches/${matchId}/details`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((r) => r.json())
@@ -109,12 +109,12 @@ const MatchDetailModal = ({ matchId, isOpen, onClose }) => {
   }
 
   const { match, submissions } = details;
-  const userId    = user?.id || user?._id;
-  const me        = match.players?.find((p) => p.user?._id?.toString() === userId?.toString());
-  const opponent  = match.players?.find((p) => p.user?._id?.toString() !== userId?.toString());
-  const won       = match.winner?._id?.toString() === userId?.toString();
-  const problems  = match.problems?.length ? match.problems : (match.problem ? [match.problem] : []);
-  const rounds    = match.totalRounds || 1;
+  const userId = user?.id || user?._id;
+  const me = match.players?.find((p) => p.user?._id?.toString() === userId?.toString());
+  const opponent = match.players?.find((p) => p.user?._id?.toString() !== userId?.toString());
+  const won = match.winner?._id?.toString() === userId?.toString();
+  const problems = match.problems?.length ? match.problems : (match.problem ? [match.problem] : []);
+  const rounds = match.totalRounds || 1;
 
   const avatar = (person, colour) =>
     person?.user?.picture ||
@@ -132,17 +132,15 @@ const MatchDetailModal = ({ matchId, isOpen, onClose }) => {
       >
         {/* ── Header ── */}
         <div
-          className={`px-5 py-4 flex items-center justify-between flex-shrink-0 border-b border-[var(--lc-border)] ${
-            won ? 'bg-emerald-900/20' : 'bg-red-900/20'
-          }`}
+          className={`px-5 py-4 flex items-center justify-between flex-shrink-0 border-b border-[var(--lc-border)] ${won ? 'bg-emerald-900/20' : 'bg-red-900/20'
+            }`}
         >
           <div className="flex items-center gap-3 min-w-0">
             <span
-              className={`px-3 py-1 rounded-lg text-sm font-black border flex-shrink-0 ${
-                won
+              className={`px-3 py-1 rounded-lg text-sm font-black border flex-shrink-0 ${won
                   ? 'text-emerald-400 bg-emerald-500/15 border-emerald-500/40'
                   : 'text-red-400 bg-red-500/15 border-red-500/40'
-              }`}
+                }`}
             >
               {won ? '✓ YOU WON' : '✗ YOU LOST'}
             </span>
@@ -170,11 +168,10 @@ const MatchDetailModal = ({ matchId, isOpen, onClose }) => {
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`px-4 pb-2 pt-1 text-xs font-bold whitespace-nowrap transition-all border-b-2 ${
-                tab === t.id
+              className={`px-4 pb-2 pt-1 text-xs font-bold whitespace-nowrap transition-all border-b-2 ${tab === t.id
                   ? 'border-blue-400 text-blue-300'
                   : 'border-transparent text-[var(--lc-text-primary)] hover:text-[var(--lc-text-bright)]'
-              }`}
+                }`}
             >
               {t.id === 'submissions' ? `💻 Code (${submissions.length})` : t.label}
             </button>
@@ -206,11 +203,10 @@ const MatchDetailModal = ({ matchId, isOpen, onClose }) => {
                 <div className="text-center space-y-1">
                   <p className="text-xl font-black text-[var(--lc-text-primary)]">VS</p>
                   <div
-                    className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                      won
+                    className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full border ${won
                         ? 'text-emerald-400 border-emerald-500/40 bg-emerald-900/30'
                         : 'text-red-400 border-red-500/40 bg-red-900/30'
-                    }`}
+                      }`}
                   >
                     {won ? 'WIN' : 'LOSS'}
                   </div>
@@ -234,9 +230,9 @@ const MatchDetailModal = ({ matchId, isOpen, onClose }) => {
               {/* Meta grid */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {[
-                  { icon: '📅', label: 'Date',        value: new Date(match.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) },
-                  { icon: '⏱',  label: 'Duration',    value: fmtClock(match.duration) },
-                  { icon: '🎮', label: 'Format',       value: rounds === 1 ? '1v1' : `Bo${rounds}` },
+                  { icon: '📅', label: 'Date', value: new Date(match.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) },
+                  { icon: '⏱', label: 'Duration', value: fmtClock(match.duration) },
+                  { icon: '🎮', label: 'Format', value: rounds === 1 ? '1v1' : `Bo${rounds}` },
                   { icon: match.isPrivate ? '🔒' : '🏆', label: 'Type', value: match.isPrivate ? 'Private' : 'Ranked' },
                 ].map((s) => (
                   <div key={s.label} className="rounded-xl border border-[var(--lc-border)] bg-[var(--lc-bg)] p-3 text-center">
@@ -273,7 +269,7 @@ const MatchDetailModal = ({ matchId, isOpen, onClose }) => {
               )}
               {problems.map((prob, i) => {
                 if (!prob) return null;
-                const myR  = me?.roundResults?.[i];
+                const myR = me?.roundResults?.[i];
                 const oppR = opponent?.roundResults?.[i];
                 const diff = prob.difficulty || 'medium';
                 return (
@@ -301,8 +297,8 @@ const MatchDetailModal = ({ matchId, isOpen, onClose }) => {
                     {/* Who solved it */}
                     <div className="grid grid-cols-2 divide-x divide-[var(--lc-border)] border-t border-[var(--lc-border)]">
                       {[
-                        { label: me?.user?.name?.split(' ')[0] || 'You',              r: myR,  colour: 'emerald', border: 'border-emerald-500/40 bg-emerald-900/15' },
-                        { label: opponent?.user?.name?.split(' ')[0] || 'Opponent',   r: oppR, colour: 'purple',  border: 'border-purple-500/40  bg-purple-900/15'  },
+                        { label: me?.user?.name?.split(' ')[0] || 'You', r: myR, colour: 'emerald', border: 'border-emerald-500/40 bg-emerald-900/15' },
+                        { label: opponent?.user?.name?.split(' ')[0] || 'Opponent', r: oppR, colour: 'purple', border: 'border-purple-500/40  bg-purple-900/15' },
                       ].map((p) => (
                         <div
                           key={p.label}
@@ -332,14 +328,13 @@ const MatchDetailModal = ({ matchId, isOpen, onClose }) => {
               )}
               {submissions.map((sub, i) => {
                 const expanded = expandedSub === (sub._id || i);
-                const style    = VERDICT_STYLE[sub.verdict] || VERDICT_STYLE.Pending;
+                const style = VERDICT_STYLE[sub.verdict] || VERDICT_STYLE.Pending;
                 const accepted = sub.verdict === 'Accepted';
                 return (
                   <div
                     key={sub._id || i}
-                    className={`rounded-xl border bg-[var(--lc-bg)] overflow-hidden transition-all ${
-                      accepted ? 'border-emerald-500/35' : 'border-[var(--lc-border)]'
-                    }`}
+                    className={`rounded-xl border bg-[var(--lc-bg)] overflow-hidden transition-all ${accepted ? 'border-emerald-500/35' : 'border-[var(--lc-border)]'
+                      }`}
                   >
                     {/* Row */}
                     <div
@@ -365,7 +360,7 @@ const MatchDetailModal = ({ matchId, isOpen, onClose }) => {
                             hour: '2-digit', minute: '2-digit', second: '2-digit',
                           })}
                           {sub.executionTime ? ` · ${sub.executionTime}ms` : ''}
-                          {sub.memory       ? ` · ${sub.memory}KB`         : ''}
+                          {sub.memory ? ` · ${sub.memory}KB` : ''}
                         </p>
                       </div>
                       {/* Expand icon */}
@@ -389,7 +384,7 @@ const MatchDetailModal = ({ matchId, isOpen, onClose }) => {
                             {sub.problem?.title ? ` · ${sub.problem.title}` : ''}
                           </span>
                           <button
-                            onClick={() => navigator.clipboard.writeText(sub.code).catch(() => {})}
+                            onClick={() => navigator.clipboard.writeText(sub.code).catch(() => { })}
                             className="text-[10px] text-slate-400 hover:text-slate-200 transition-colors flex items-center gap-1"
                           >
                             📋 Copy
@@ -417,8 +412,8 @@ const MatchDetailModal = ({ matchId, isOpen, onClose }) => {
                 </h4>
                 <div className="grid grid-cols-3 gap-2">
                   {[
-                    { label: 'Rounds Won',  value: me?.solvedCount ?? 0 },
-                    { label: 'Wrong Sub',   value: me?.wrongSubmissions ?? 0 },
+                    { label: 'Rounds Won', value: me?.solvedCount ?? 0 },
+                    { label: 'Wrong Sub', value: me?.wrongSubmissions ?? 0 },
                     {
                       label: 'Avg Solve',
                       value: (() => {
@@ -459,19 +454,17 @@ const MatchDetailModal = ({ matchId, isOpen, onClose }) => {
                             {prob?.title || `Round ${i + 1}`}
                           </p>
                           {/* My result */}
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border whitespace-nowrap ${
-                            r.solved
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border whitespace-nowrap ${r.solved
                               ? 'text-emerald-400 bg-emerald-900/30 border-emerald-500/40'
                               : 'text-red-400 bg-red-900/30 border-red-500/40'
-                          }`}>
+                            }`}>
                             {r.solved ? `✓ ${fmtTime(r.solveTime)}` : '✗'}
                           </span>
                           {/* Opp result */}
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border whitespace-nowrap ${
-                            oppR?.solved
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border whitespace-nowrap ${oppR?.solved
                               ? 'text-purple-400 bg-purple-900/30 border-purple-500/40'
                               : 'text-slate-500 bg-slate-800/30 border-slate-600/40'
-                          }`}>
+                            }`}>
                             {oppR?.solved ? `✓ ${fmtTime(oppR.solveTime)}` : '✗'}
                           </span>
                         </div>
@@ -489,8 +482,8 @@ const MatchDetailModal = ({ matchId, isOpen, onClose }) => {
                 </h4>
                 <div className="grid grid-cols-3 gap-2">
                   {[
-                    { label: 'Rounds Won',  value: opponent?.solvedCount ?? 0 },
-                    { label: 'Wrong Sub',   value: opponent?.wrongSubmissions ?? 0 },
+                    { label: 'Rounds Won', value: opponent?.solvedCount ?? 0 },
+                    { label: 'Wrong Sub', value: opponent?.wrongSubmissions ?? 0 },
                     {
                       label: 'Avg Solve',
                       value: (() => {
