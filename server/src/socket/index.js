@@ -29,9 +29,15 @@ let io = null;
 export const onlineUsers = new Map();
 
 export const initializeSocket = (server) => {
+  const allowedOrigins = [
+    process.env.CLIENT_URL,
+    'http://localhost:3003',
+    'http://localhost:5173',
+  ].filter(Boolean);
+
   io = new Server(server, {
     cors: {
-      origin: process.env.CLIENT_URL || 'http://localhost:3003',
+      origin: allowedOrigins,
       credentials: true,
     },
   });

@@ -6,15 +6,29 @@ import matchRoutes from './routes/match.routes.js';
 import userRoutes from './routes/user.routes.js';
 import problemRoutes from './routes/problem.routes.js';
 import contestRoutes from './routes/contest.routes.js';
-import reportRoutes  from './routes/report.routes.js';
+import reportRoutes from './routes/report.routes.js';
 
 const app = express();
 
 
 
-// Middleware
+// Middleware — allow multiple origins for split hosting (Vercel frontend + AWS backend)
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  'http://localhost:3003',
+  'http://localhost:5173',
+].filter(Boolean);
+
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:3003',
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, etc.)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.some(allowed => origin.startsWith(allowed))) {
+      return callback(null, true);
+    }
+    console.warn(`⚠️ CORS blocked origin: ${origin}`);
+    return callback(new Error('Not allowed by CORS'));
+  },
   credentials: true,
 }));
 app.use(express.json());
@@ -32,7 +46,7 @@ app.use('/api/matches', matchRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/problems', problemRoutes);
 app.use('/api/contests', contestRoutes);
-app.use('/api/reports',  reportRoutes);
+app.use('/api/reports', reportRoutes);
 
 console.log('✅ Routes registered: /api/auth, /api/test, /api/matches, /api/users, /api/problems, /api/contests, /api/reports');
 
