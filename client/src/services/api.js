@@ -1,6 +1,9 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+// In production on Render, use relative URLs (proxied through Render to backend)
+// In local dev, use the direct backend URL
+const IS_LOCAL = import.meta.env.VITE_API_URL?.includes('localhost');
+const API_URL = IS_LOCAL ? (import.meta.env.VITE_API_URL || 'http://localhost:5000') : '';
 
 // Create axios instance
 const api = axios.create({

@@ -39,7 +39,9 @@ export const AuthProvider = ({ children }) => {
       const tk = localStorage.getItem('token');
       if (!tk) return;
 
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/me`, {
+      const isLocal = import.meta.env.VITE_API_URL?.includes('localhost');
+      const base = isLocal ? (import.meta.env.VITE_API_URL || 'http://localhost:5000') : '';
+      const response = await fetch(`${base}/api/auth/me`, {
         headers: { Authorization: `Bearer ${tk}` },
       });
 
@@ -67,8 +69,9 @@ export const AuthProvider = ({ children }) => {
    */
   const loginWithGoogle = async (googleToken, tokenType = 'id_token') => {
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      const response = await fetch(`${API_URL}/api/auth/google`, {
+      const isLocal = import.meta.env.VITE_API_URL?.includes('localhost');
+      const base = isLocal ? (import.meta.env.VITE_API_URL || 'http://localhost:5000') : '';
+      const response = await fetch(`${base}/api/auth/google`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token: googleToken, tokenType }),

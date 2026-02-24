@@ -62,7 +62,10 @@ const MatchDetailModal = ({ matchId, isOpen, onClose }) => {
     setTab('overview');
     setExpandedSub(null);
 
-    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/matches/${matchId}/details`, {
+    const API_URL = import.meta.env.VITE_API_URL?.includes('localhost')
+      ? (import.meta.env.VITE_API_URL || 'http://localhost:5000')
+      : '';
+    fetch(`${API_URL}/api/matches/${matchId}/details`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((r) => r.json())
@@ -138,8 +141,8 @@ const MatchDetailModal = ({ matchId, isOpen, onClose }) => {
           <div className="flex items-center gap-3 min-w-0">
             <span
               className={`px-3 py-1 rounded-lg text-sm font-black border flex-shrink-0 ${won
-                  ? 'text-emerald-400 bg-emerald-500/15 border-emerald-500/40'
-                  : 'text-red-400 bg-red-500/15 border-red-500/40'
+                ? 'text-emerald-400 bg-emerald-500/15 border-emerald-500/40'
+                : 'text-red-400 bg-red-500/15 border-red-500/40'
                 }`}
             >
               {won ? '✓ YOU WON' : '✗ YOU LOST'}
@@ -169,8 +172,8 @@ const MatchDetailModal = ({ matchId, isOpen, onClose }) => {
               key={t.id}
               onClick={() => setTab(t.id)}
               className={`px-4 pb-2 pt-1 text-xs font-bold whitespace-nowrap transition-all border-b-2 ${tab === t.id
-                  ? 'border-blue-400 text-blue-300'
-                  : 'border-transparent text-[var(--lc-text-primary)] hover:text-[var(--lc-text-bright)]'
+                ? 'border-blue-400 text-blue-300'
+                : 'border-transparent text-[var(--lc-text-primary)] hover:text-[var(--lc-text-bright)]'
                 }`}
             >
               {t.id === 'submissions' ? `💻 Code (${submissions.length})` : t.label}
@@ -204,8 +207,8 @@ const MatchDetailModal = ({ matchId, isOpen, onClose }) => {
                   <p className="text-xl font-black text-[var(--lc-text-primary)]">VS</p>
                   <div
                     className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full border ${won
-                        ? 'text-emerald-400 border-emerald-500/40 bg-emerald-900/30'
-                        : 'text-red-400 border-red-500/40 bg-red-900/30'
+                      ? 'text-emerald-400 border-emerald-500/40 bg-emerald-900/30'
+                      : 'text-red-400 border-red-500/40 bg-red-900/30'
                       }`}
                   >
                     {won ? 'WIN' : 'LOSS'}
@@ -455,15 +458,15 @@ const MatchDetailModal = ({ matchId, isOpen, onClose }) => {
                           </p>
                           {/* My result */}
                           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border whitespace-nowrap ${r.solved
-                              ? 'text-emerald-400 bg-emerald-900/30 border-emerald-500/40'
-                              : 'text-red-400 bg-red-900/30 border-red-500/40'
+                            ? 'text-emerald-400 bg-emerald-900/30 border-emerald-500/40'
+                            : 'text-red-400 bg-red-900/30 border-red-500/40'
                             }`}>
                             {r.solved ? `✓ ${fmtTime(r.solveTime)}` : '✗'}
                           </span>
                           {/* Opp result */}
                           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border whitespace-nowrap ${oppR?.solved
-                              ? 'text-purple-400 bg-purple-900/30 border-purple-500/40'
-                              : 'text-slate-500 bg-slate-800/30 border-slate-600/40'
+                            ? 'text-purple-400 bg-purple-900/30 border-purple-500/40'
+                            : 'text-slate-500 bg-slate-800/30 border-slate-600/40'
                             }`}>
                             {oppR?.solved ? `✓ ${fmtTime(oppR.solveTime)}` : '✗'}
                           </span>
