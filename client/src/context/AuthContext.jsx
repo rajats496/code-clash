@@ -67,15 +67,22 @@ export const AuthProvider = ({ children }) => {
    */
   const loginWithGoogle = async (googleToken, tokenType = 'id_token') => {
     try {
-      const response = await api.post('/auth/google', { token: googleToken, tokenType });
-      const { token: jwtToken, user: userData } = response.data;
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const response = await fetch(`${API_URL}/api/auth/google`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: googleToken, tokenType }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Login failed');
+      const { token: jwtToken, user: userData } = data;
       saveAuth(jwtToken, userData);
       return { success: true };
     } catch (error) {
       console.error('Login failed:', error);
       return {
         success: false,
-        error: error.response?.data?.error || 'Login failed',
+        error: error.message || 'Login failed',
       };
     }
   };
