@@ -35,7 +35,14 @@ const getLang = (languageId) =>
 // ─────────────────────────────────────────────
 //  Helpers
 // ─────────────────────────────────────────────
-const normalizeOutput = (s) => (s || '').trim().replace(/\r\n/g, '\n');
+const normalizeOutput = (s) =>
+  (s || '')
+    .replace(/\r\n/g, '\n')    // Windows line endings
+    .replace(/\r/g, '\n')       // Old Mac line endings
+    .split('\n')
+    .map(line => line.trimEnd()) // Trim trailing spaces on each line
+    .join('\n')
+    .trim();                     // Trim leading/trailing empty lines
 
 // ─────────────────────────────────────────────
 //  Core Piston call
