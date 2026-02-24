@@ -5,6 +5,8 @@ import AppShell from '../components/layout/AppShell';
 import MatchChatModal from '../components/chat/MatchChatModal';
 import MatchDetailModal from '../components/arena/MatchDetailModal';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 const MatchHistory = () => {
   const { user, token } = useAuth();
   const navigate = useNavigate();
@@ -23,7 +25,7 @@ const MatchHistory = () => {
 
     const fetchHistory = async () => {
       try {
-        const res = await fetch('/api/matches/history', {
+        const res = await fetch(`${API_URL}/api/matches/history`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -93,8 +95,8 @@ const MatchHistory = () => {
           <div className="flex items-center justify-center py-20">
             <div className="flex items-center gap-3 text-[var(--lc-text-primary)] font-mono text-sm">
               <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
               Loading matches...
             </div>
@@ -134,13 +136,13 @@ const MatchHistory = () => {
                 <div
                   key={match._id || index}
                   className={`group rounded-xl border px-5 py-4 flex items-center gap-4 cursor-default transition-all duration-200 lc-card
-                    ${ won
+                    ${won
                       ? 'border-emerald-700/40 bg-emerald-900/10 hover:bg-emerald-900/25 hover:border-emerald-500/60 hover:shadow-lg hover:shadow-emerald-900/30'
                       : 'border-red-700/40 bg-red-900/10 hover:bg-red-900/25 hover:border-red-500/60 hover:shadow-lg hover:shadow-red-900/30'
                     }`}
                 >
                   {/* Result stripe */}
-                  <div className={`w-1 self-stretch rounded-full flex-shrink-0 ${ won ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                  <div className={`w-1 self-stretch rounded-full flex-shrink-0 ${won ? 'bg-emerald-500' : 'bg-red-500'}`} />
 
                   {/* Main info */}
                   <div className="flex-1 min-w-0">
@@ -178,11 +180,10 @@ const MatchHistory = () => {
 
                   {/* Right side */}
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className={`text-xs font-black font-mono tracking-wider px-3 py-1 rounded-lg border ${
-                      won
-                        ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30'
-                        : 'text-red-400 bg-red-500/10 border-red-500/30'
-                    }`}>
+                    <span className={`text-xs font-black font-mono tracking-wider px-3 py-1 rounded-lg border ${won
+                      ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30'
+                      : 'text-red-400 bg-red-500/10 border-red-500/30'
+                      }`}>
                       {won ? '✓ WIN' : '✗ LOSS'}
                     </span>
                     {/* Details button */}

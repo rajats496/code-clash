@@ -51,7 +51,7 @@ const AppShell = ({ children }) => {
     if (!reportForm.subject.trim() || !reportForm.description.trim()) return;
     setReportSending(true);
     try {
-      const res = await fetch('/api/reports', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/reports`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -61,7 +61,7 @@ const AppShell = ({ children }) => {
           type: reportForm.subject,
           description: reportForm.description,
           reporterEmail: user?.email || null,
-          reporterName:  user?.name  || null,
+          reporterName: user?.name || null,
         }),
       });
       const data = await res.json();
@@ -345,9 +345,8 @@ const AppShell = ({ children }) => {
           <div className="relative" ref={settingsRef}>
             <button
               onClick={() => setSettingsOpen((prev) => !prev)}
-              className={`text-gray-400 hover:text-white transition-colors ${
-                settingsOpen ? 'text-white' : ''
-              }`}
+              className={`text-gray-400 hover:text-white transition-colors ${settingsOpen ? 'text-white' : ''
+                }`}
             >
               <span className="material-symbols-outlined text-xl">settings</span>
             </button>
