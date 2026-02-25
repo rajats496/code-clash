@@ -39,9 +39,7 @@ export const AuthProvider = ({ children }) => {
       const tk = localStorage.getItem('token');
       if (!tk) return;
 
-      const isLocal = import.meta.env.VITE_API_URL?.includes('localhost');
-      const base = isLocal ? (import.meta.env.VITE_API_URL || 'http://localhost:5000') : '';
-      const response = await fetch(`${base}/api/auth/me`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/me`, {
         headers: { Authorization: `Bearer ${tk}` },
       });
 
@@ -69,23 +67,15 @@ export const AuthProvider = ({ children }) => {
    */
   const loginWithGoogle = async (googleToken, tokenType = 'id_token') => {
     try {
-      const isLocal = import.meta.env.VITE_API_URL?.includes('localhost');
-      const base = isLocal ? (import.meta.env.VITE_API_URL || 'http://localhost:5000') : '';
-      const response = await fetch(`${base}/api/auth/google`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: googleToken, tokenType }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Login failed');
-      const { token: jwtToken, user: userData } = data;
+      const response = await api.post('/auth/google', { token: googleToken, tokenType });
+      const { token: jwtToken, user: userData } = response.data;
       saveAuth(jwtToken, userData);
       return { success: true };
     } catch (error) {
       console.error('Login failed:', error);
       return {
         success: false,
-        error: error.message || 'Login failed',
+        error: error.response?.data?.error || 'Login failed',
       };
     }
   };

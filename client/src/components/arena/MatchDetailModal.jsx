@@ -62,10 +62,7 @@ const MatchDetailModal = ({ matchId, isOpen, onClose }) => {
     setTab('overview');
     setExpandedSub(null);
 
-    const API_URL = import.meta.env.VITE_API_URL?.includes('localhost')
-      ? (import.meta.env.VITE_API_URL || 'http://localhost:5000')
-      : '';
-    fetch(`${API_URL}/api/matches/${matchId}/details`, {
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/matches/${matchId}/details`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((r) => r.json())
