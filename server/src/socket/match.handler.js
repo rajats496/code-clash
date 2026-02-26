@@ -341,17 +341,7 @@ export const handleCodeSubmit = (io, socket) => {
 
       console.log(`✅ Result: ${result.verdict} (${result.passedTests}/${result.totalTests} passed)`);
 
-      if (!isSubmit) {
-        await setCachedResult({
-          problemId: currentProblemId.toString(),
-          languageId,
-          code,
-          visibleOnly: true,
-          result,
-        });
-      }
-
-      // Send result to player
+      // Send result to player first — cache write is best-effort only
       socket.emit('submission-result', {
         verdict: result.verdict,
         message: `${result.passedTests}/${result.totalTests} test cases passed`,
@@ -362,6 +352,19 @@ export const handleCodeSubmit = (io, socket) => {
         compilationError: result.compilationError || null,
         isSubmit: isSubmit,
       });
+
+      // Best-effort cache write; failures must not affect user-visible result
+      if (!isSubmit) {
+        setCachedResult({
+          problemId: currentProblemId.toString(),
+          languageId,
+          code,
+          visibleOnly: true,
+          result,
+        }).catch((err) => {
+          console.error('Failed to write RUN result to cache (arena):', err.message);
+        });
+      }
 
       // If it's just a run, skip all scoring and DB saving logic
       if (!isSubmit) return;
