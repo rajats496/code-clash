@@ -399,7 +399,7 @@ const ContestArena = () => {
   // Fetch leaderboard
   const fetchLeaderboard = useCallback(async () => {
     try {
-      const res = await contestApi.leaderboard(id, { limit: 50 });
+      const res = await contestApi.leaderboard(id, { limit: 1000 });
       setLeaderboard(res.data.leaderboard || []);
     } catch { /* ignore */ }
   }, [id]);
