@@ -12,11 +12,12 @@ const app = express();
 
 
 
-// Middleware — allow multiple origins for split hosting (Vercel frontend + AWS backend)
+// Middleware — allow multiple origins for split hosting (Render frontend + AWS backend)
 const allowedOrigins = [
   process.env.CLIENT_URL,
   'http://localhost:3003',
   'http://localhost:5173',
+  'https://code-clash-ynj3.onrender.com',
 ].filter(Boolean);
 
 app.use(cors({
