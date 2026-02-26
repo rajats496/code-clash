@@ -5,7 +5,7 @@ import AppShell from '../components/layout/AppShell';
 import MatchChatModal from '../components/chat/MatchChatModal';
 import MatchDetailModal from '../components/arena/MatchDetailModal';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_URL = import.meta.env.DEV ? (import.meta.env.VITE_API_URL || 'http://localhost:5000') : '';
 
 const MatchHistory = () => {
   const { user, token } = useAuth();

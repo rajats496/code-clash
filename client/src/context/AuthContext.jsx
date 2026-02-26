@@ -39,7 +39,8 @@ export const AuthProvider = ({ children }) => {
       const tk = localStorage.getItem('token');
       if (!tk) return;
 
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/me`, {
+      const base = import.meta.env.DEV ? (import.meta.env.VITE_API_URL || 'http://localhost:5000') : '';
+      const response = await fetch(`${base}/api/auth/me`, {
         headers: { Authorization: `Bearer ${tk}` },
       });
 
