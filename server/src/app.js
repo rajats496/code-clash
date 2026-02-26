@@ -7,6 +7,7 @@ import userRoutes from './routes/user.routes.js';
 import problemRoutes from './routes/problem.routes.js';
 import contestRoutes from './routes/contest.routes.js';
 import reportRoutes from './routes/report.routes.js';
+import adminRoutes from './routes/admin.routes.js';
 
 const app = express();
 
@@ -48,8 +49,9 @@ app.use('/api/users', userRoutes);
 app.use('/api/problems', problemRoutes);
 app.use('/api/contests', contestRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/admin', adminRoutes);
 
-console.log('✅ Routes registered: /api/auth, /api/test, /api/matches, /api/users, /api/problems, /api/contests, /api/reports');
+console.log('✅ Routes registered: /api/auth, /api/test, /api/matches, /api/users, /api/problems, /api/contests, /api/reports, /api/admin');
 
 // 404 handler
 app.use((req, res) => {
