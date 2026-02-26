@@ -1,6 +1,9 @@
 import { io } from 'socket.io-client';
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
+// In production: empty (proxied through Render). In local dev: direct URL
+const SOCKET_URL = import.meta.env.DEV
+  ? (import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000')
+  : '';
 
 let socket = null;
 
@@ -33,13 +36,13 @@ export const connectSocket = (token) => {
   });
 
   socket.connect();
-  
+
   // TESTING: Expose to window (REMOVE IN PRODUCTION)
   if (typeof window !== 'undefined') {
     window.socket = socket;
     console.log('🧪 Socket exposed to window.socket for testing');
   }
-  
+
   return socket;
 };
 
