@@ -19,8 +19,8 @@ const PISTON_EXECUTE_URL = `${PISTON_BASE_URL}/api/v2/execute`;
 const TIMEOUT_MS = 30000;
 const CONCURRENCY = parseInt(process.env.CONTEST_PISTON_CONCURRENCY || '6', 10); // Parallel test-case limit (non-batched mode)
 const CASE_DELIMITER = '\n===CASE===\n';
-const BATCH_RUN_TIMEOUT_MS = 30_000;  // 30s total for batched multi-test execution
-const BATCH_HTTP_TIMEOUT_MS = 40_000; // HTTP timeout around the batched Piston call
+const BATCH_RUN_TIMEOUT_MS = 3000;  // 3s total for batched multi-test execution (Piston default max is 3000)
+const BATCH_HTTP_TIMEOUT_MS = 10_000; // HTTP timeout around the batched Piston call
 const BATCH_LANGUAGES = new Set([71, 70]); // Python 3 & 2 support batched mode
 
 // ─────────────────────────────────────────────
