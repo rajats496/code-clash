@@ -487,9 +487,10 @@ const getQueuePosition = async () => {
 // ─────────────────────────────────────────────
 export const getContestLeaderboard = async (req, res) => {
   try {
-    const { page = 1, limit = 1000 } = req.query;
+    const { page = 1 } = req.query;
+    const limit = 1000;
     const contestId = req.params.id;
-    const offset = (parseInt(page) - 1) * parseInt(limit);
+    const offset = (parseInt(page) - 1) * limit;
 
     const contest = await Contest.findById(contestId).lean();
     if (!contest) {
