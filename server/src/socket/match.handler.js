@@ -8,11 +8,13 @@ import {
   deleteMatch,
   advanceRound,
 } from './matchState.js';
-import { runTestCases } from '../services/piston.service.js';
+import { runTestCases } from '../services/contest-execution.service.js';
 import { Problem } from '../models/Problem.model.js';
 import { Match } from '../models/Match.model.js';
 import { Submission } from '../models/Submission.model.js';
 import { User } from '../models/User.model.js';
+import { consumeToken } from '../services/rate-limit.service.js';
+import { getCachedResult, setCachedResult } from '../services/execution-cache.service.js';
 
 /**
  * Update player stats after match ends
@@ -275,6 +277,24 @@ export const handleCodeSubmit = (io, socket) => {
         });
       }
 
+      // Per-user rate limiting
+      const scope = isSubmit ? 'arena:submit' : 'arena:run';
+      const rate = await consumeToken({
+        scope,
+        id: userId,
+        maxTokens: isSubmit ? 3 : 10,
+        windowSeconds: 60,
+      });
+
+      if (!rate.allowed) {
+        return socket.emit('submission-result', {
+          verdict: 'Rate Limited',
+          message: 'Too many submissions. Please wait a moment and try again.',
+          isSubmit,
+          resetAt: rate.resetAt,
+        });
+      }
+
       socket.emit('submission-status', {
         status: 'processing',
         message: 'Running test cases...',
@@ -292,9 +312,44 @@ export const handleCodeSubmit = (io, socket) => {
 
       console.log(`🧪 Running ${testCasesToRun.length} test cases (Round ${match.currentRound + 1})...`);
 
+      // Cache RUN-only executions when code/problem/language match
+      const languageId = language;
+      if (!isSubmit) {
+        const cached = await getCachedResult({
+          problemId: currentProblemId.toString(),
+          languageId,
+          code,
+          visibleOnly: true,
+        });
+        if (cached) {
+          console.log('⚡ Using cached execution result for RUN (arena)');
+          socket.emit('submission-result', {
+            verdict: cached.verdict,
+            message: `${cached.passedTests}/${cached.totalTests} test cases passed`,
+            testResults: cached.testResults,
+            allPassed: cached.allTestsPassed,
+            runtime: cached.runtime || null,
+            memory: cached.memory || null,
+            compilationError: cached.compilationError || null,
+            isSubmit: false,
+          });
+          return;
+        }
+      }
+
       const result = await runTestCases(code, language, testCasesToRun);
 
       console.log(`✅ Result: ${result.verdict} (${result.passedTests}/${result.totalTests} passed)`);
+
+      if (!isSubmit) {
+        await setCachedResult({
+          problemId: currentProblemId.toString(),
+          languageId,
+          code,
+          visibleOnly: true,
+          result,
+        });
+      }
 
       // Send result to player
       socket.emit('submission-result', {

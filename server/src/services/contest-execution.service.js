@@ -17,7 +17,7 @@ import axios from 'axios';
 const PISTON_BASE_URL = process.env.PISTON_URL || 'http://localhost:2000';
 const PISTON_EXECUTE_URL = `${PISTON_BASE_URL}/api/v2/execute`;
 const TIMEOUT_MS = 30000;
-const CONCURRENCY = 20; // Parallel test-case limit (non-batched mode)
+const CONCURRENCY = parseInt(process.env.CONTEST_PISTON_CONCURRENCY || '6', 10); // Parallel test-case limit (non-batched mode)
 const CASE_DELIMITER = '\n===CASE===\n';
 const BATCH_RUN_TIMEOUT_MS = 30_000;  // 30s total for batched multi-test execution
 const BATCH_HTTP_TIMEOUT_MS = 40_000; // HTTP timeout around the batched Piston call
