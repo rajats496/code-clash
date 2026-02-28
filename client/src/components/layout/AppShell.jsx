@@ -125,7 +125,6 @@ const AppShell = ({ children }) => {
     { to: '/', label: 'Explore' },
     { to: '/matchmaking', label: 'Join Clash', auth: true },
     { to: '/contests', label: 'Contests' },
-    { to: '/tournament', label: 'Tournament', auth: true },
     { to: '/leaderboard', label: 'Leaderboard' },
     { to: '/history', label: 'History', auth: true },
     { to: '/friends', label: 'Friends', auth: true },
