@@ -19,6 +19,7 @@ const allowedOrigins = [
   'http://localhost:3003',
   'http://localhost:5173',
   'https://code-clash-ynj3.onrender.com',
+  'https://cclash.duckdns.org',
 ].filter(Boolean);
 
 app.use(cors({

@@ -33,6 +33,8 @@ export const initializeSocket = (server) => {
     process.env.CLIENT_URL,
     'http://localhost:3003',
     'http://localhost:5173',
+    'https://code-clash-ynj3.onrender.com',
+    'https://cclash.duckdns.org',
   ].filter(Boolean);
 
   io = new Server(server, {
