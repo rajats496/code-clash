@@ -8,6 +8,16 @@ import { getSocket } from '../services/socket';
 import Editor from '@monaco-editor/react';
 import { CheckIcon, CrossIcon, ClockIcon, FlameIcon, SparklesIcon, TrophyIcon, CopyIcon, ArrowLeftIcon } from '../components/common/Icons';
 
+// Strip question link line (e.g. 🔗 https://codeforces.com/...) from description
+const descriptionWithoutLink = (desc) => {
+  if (!desc || typeof desc !== 'string') return desc || '';
+  return desc
+    .split('\n')
+    .filter((line) => !/^\s*🔗?\s*https?:\/\/\S*\s*$/m.test(line.trim()))
+    .join('\n')
+    .trim();
+};
+
 // ── Verdict colour helper ─────────────────────────────────────────────────────
 const vStyle = (v) => {
   if (v === 'Accepted') return { color: '#00b8a3', bg: 'rgba(0,184,163,0.08)', border: 'rgba(0,184,163,0.35)', icon: <CheckIcon size={16} /> };
@@ -605,7 +615,7 @@ const Arena = () => {
                 {/* Description text */}
                 <div className="text-sm leading-[1.85] font-sans whitespace-pre-wrap"
                   style={{ color: '#d1d5db', letterSpacing: '0.01em' }}>
-                  {activeProblem.description}
+                  {descriptionWithoutLink(activeProblem.description)}
                 </div>
 
                 {/* Examples */}

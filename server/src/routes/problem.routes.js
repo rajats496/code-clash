@@ -11,14 +11,18 @@ const router = express.Router();
  */
 router.get('/', async (req, res) => {
     try {
-        const { difficulty, limit = 50, skip = 0 } = req.query;
+        const { difficulty, limit = 200, skip = 0 } = req.query;
         const filter = {};
         if (difficulty) filter.difficulty = difficulty.toLowerCase();
 
+        const limitNum = Math.min(Math.max(Number(limit) || 200, 1), 500);
+        const skipNum = Math.max(Number(skip) || 0, 0);
+
         const problems = await Problem.find(filter)
             .select('title difficulty testCases languagesAllowed timeLimit memoryLimit createdAt')
-            .skip(Number(skip))
-            .limit(Number(limit))
+            .sort({ createdAt: -1 })
+            .skip(skipNum)
+            .limit(limitNum)
             .lean();
 
         const total = await Problem.countDocuments(filter);
@@ -74,6 +78,55 @@ router.post('/', authenticateToken, requireAdmin, async (req, res) => {
 });
 
 /**
+ * GET /api/problems/daily
+ * Get today's daily challenge problem (public).
+ * Must be defined before /:id so "daily" is not treated as an id.
+ */
+router.get('/daily', async (req, res) => {
+    try {
+        const problems = await Problem.find().select('title difficulty').lean();
+
+        if (problems.length === 0) {
+            return res.json({
+                success: true,
+                problem: null,
+                message: 'No problems available',
+            });
+        }
+
+        const today = new Date();
+        const seed = today.getFullYear() * 10000
+            + (today.getMonth() + 1) * 100
+            + today.getDate();
+        const index = seed % problems.length;
+        const dailyProblem = problems[index];
+
+        const solvedCount = await Submission.countDocuments({
+            problem: dailyProblem._id,
+            verdict: 'Accepted',
+        });
+
+        res.json({
+            success: true,
+            problem: {
+                id: dailyProblem._id,
+                title: dailyProblem.title,
+                difficulty: dailyProblem.difficulty,
+                solvedCount,
+                date: today.toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                }),
+            },
+        });
+    } catch (error) {
+        console.error('❌ Daily challenge error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+/**
  * GET /api/problems/:id
  * Get a single problem by its MongoDB _id.
  * Hidden test cases are NOT returned (they stay server-side for judging).
@@ -101,57 +154,6 @@ router.get('/:id', async (req, res) => {
         });
     } catch (error) {
         console.error('❌ GET /api/problems/:id error:', error);
-        res.status(500).json({ success: false, message: 'Server error' });
-    }
-});
-
-/**
- * GET /api/problems/daily
- * Get today's daily challenge problem (public)
- * Uses date-based seed to deterministically pick a problem each day
- */
-router.get('/daily', async (req, res) => {
-    try {
-        const problems = await Problem.find().select('title difficulty').lean();
-
-        if (problems.length === 0) {
-            return res.json({
-                success: true,
-                problem: null,
-                message: 'No problems available',
-            });
-        }
-
-        // Deterministic daily selection based on today's date
-        const today = new Date();
-        const seed = today.getFullYear() * 10000
-            + (today.getMonth() + 1) * 100
-            + today.getDate();
-        const index = seed % problems.length;
-        const dailyProblem = problems[index];
-
-        // Count submissions for this problem
-        const solvedCount = await Submission.countDocuments({
-            problem: dailyProblem._id,
-            verdict: 'Accepted',
-        });
-
-        res.json({
-            success: true,
-            problem: {
-                id: dailyProblem._id,
-                title: dailyProblem.title,
-                difficulty: dailyProblem.difficulty,
-                solvedCount,
-                date: today.toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                }),
-            },
-        });
-    } catch (error) {
-        console.error('❌ Daily challenge error:', error);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 });
