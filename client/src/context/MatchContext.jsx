@@ -262,9 +262,21 @@ export const MatchProvider = ({ children }) => {
       ]);
     });
 
-    // Errors
-    socket.on('error', (data) => {
-      console.error('❌ Socket error:', data);
+
+    // Errors — ONLY handle match/submission-specific errors.
+    // Queue and private-room errors are handled by page-level listeners.
+    const MATCH_ERROR_MSGS = [
+      'Match not found',
+      'not in this match',
+      'Match is not',
+      'not in a match',
+      'not in progress',
+      'Failed to process submission',
+      'Failed to join match',
+    ];
+
+    const handleMatchError = (data) => {
+      console.error('❌ Socket error (MatchContext):', data);
 
       // Always reset a stuck "pending" submission
       setSubmissionStatus((prev) =>
@@ -274,11 +286,7 @@ export const MatchProvider = ({ children }) => {
       );
 
       const isMatchError = data.message &&
-        (data.message.includes('Match not found') ||
-          data.message.includes('not in this match') ||
-          data.message.includes('Match is not') ||
-          data.message.includes('not in a match') ||
-          data.message.includes('not in progress'));
+        MATCH_ERROR_MSGS.some((m) => data.message.includes(m));
 
       if (isMatchError) {
         localStorage.removeItem('currentMatch');
@@ -289,10 +297,11 @@ export const MatchProvider = ({ children }) => {
           reason: 'match-error',
           autoRedirect: true,
         });
-      } else {
-        alert(`Error: ${data.message}`);
       }
-    });
+      // NOTE: Do NOT alert() here — let page-level error handlers decide.
+    };
+
+    socket.on('error', handleMatchError);
 
     return () => {
       if (socket) {
@@ -309,7 +318,8 @@ export const MatchProvider = ({ children }) => {
         socket.off('post-match-chat-message');
         socket.off('friend-request-received');
         socket.off('friend-request-accepted');
-        socket.off('error');
+        // Use the named reference so we only remove OUR handler, not other page-level ones
+        socket.off('error', handleMatchError);
       }
     };
   }, [socketReady]);
