@@ -558,8 +558,8 @@ export const onPlayerDisconnect = (io, socket) => {
       match.players[userId].connected = false;
     }
 
-    // 3-second buffer before notifying opponent
-    setTimeout(() => {
+    // Wait slightly to see if it's a transient drop
+    setTimeout(async () => {
       const currentMatch = getMatch(match.roomId);
       if (!currentMatch) return;
 
@@ -568,22 +568,14 @@ export const onPlayerDisconnect = (io, socket) => {
           userId,
           message: `${socket.user.name} disconnected`,
         });
-      }
-    }, 3000);
 
-    // 30-second grace period to reconnect
-    setTimeout(async () => {
-      const currentMatch = getMatch(match.roomId);
-      if (!currentMatch) return;
-
-      if (!currentMatch.players[userId]?.connected) {
-        console.log(`⏰ ${socket.user.name} did not reconnect. Forfeiting...`);
+        console.log(`⏰ ${socket.user.name} disconnected. Forfeiting match...`);
 
         const opponentId = Object.keys(currentMatch.players).find(
           (id) => id !== userId
         );
 
-        if (opponentId && currentMatch.players[opponentId]?.connected) {
+        if (opponentId) {
           currentMatch.winner = opponentId;
           currentMatch.status = 'completed';
           stopTimer(match.roomId);
@@ -600,13 +592,6 @@ export const onPlayerDisconnect = (io, socket) => {
 
           await updatePlayerStats(opponentId, userId);
 
-          io.to(match.roomId).emit('match-end', {
-            roomId: match.roomId,
-            winner: opponentId,
-            reason: 'opponent-disconnected',
-            message: 'You win! Opponent disconnected.',
-          });
-
           deleteMatch(match.roomId);
         } else {
           currentMatch.status = 'abandoned';
@@ -614,7 +599,7 @@ export const onPlayerDisconnect = (io, socket) => {
           deleteMatch(match.roomId);
         }
       }
-    }, 30000);
+    }, 5000); // 5-second grace period for quick reconnects
   } catch (error) {
     console.error('❌ Error in onPlayerDisconnect:', error);
   }

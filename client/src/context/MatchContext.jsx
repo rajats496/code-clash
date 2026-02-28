@@ -151,7 +151,20 @@ export const MatchProvider = ({ children }) => {
 
     socket.on('opponent-disconnected', (data) => {
       console.log('🔌 Opponent disconnected:', data);
-      alert(data.message);
+
+      setTimer((prevTimer) => ({
+        currentTime: prevTimer.currentTime,
+        isRunning: false,
+      }));
+
+      localStorage.removeItem('currentMatch');
+      sessionStorage.removeItem('currentTimer');
+
+      setMatchEndResult({
+        reason: 'opponent-disconnected',
+        message: 'Victory by Forfeit (Opponent Disconnected)',
+        winner: user?._id || user?.id,
+      });
     });
 
     // ── Round won event ──

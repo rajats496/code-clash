@@ -1,6 +1,6 @@
 import { Server } from 'socket.io';
 import { socketAuthMiddleware } from './middleware.js';
-import { getRedisSubscriber } from '../config/redis.js';
+import { getRedisSubscriber, getRedisClient } from '../config/redis.js';
 import {
   handleJoinMatch,
   handleCodeUpdate,
@@ -26,7 +26,10 @@ import {
 let io = null;
 
 // In-memory map of currently connected users: userId (string) -> { name, socketId }
+// DEPRECATED: We are moving to Redis for stateless tracking
 export const onlineUsers = new Map();
+
+const disconnectTimeouts = new Map();
 
 export const initializeSocket = (server) => {
   const allowedOrigins = [
@@ -40,6 +43,8 @@ export const initializeSocket = (server) => {
       origin: allowedOrigins,
       credentials: true,
     },
+    pingTimeout: 30000,
+    pingInterval: 10000,
   });
 
   // Apply authentication middleware
@@ -47,16 +52,32 @@ export const initializeSocket = (server) => {
 
   console.log('✅ Socket.io initialized with authentication');
 
-  io.on('connection', (socket) => {
+  io.on('connection', async (socket) => {
     const uid = socket.user._id.toString();
     console.log(`🔌 Client connected: ${socket.id} (User: ${socket.user.name})`);
-    onlineUsers.set(uid, { name: socket.user.name, socketId: socket.id });
-    // Join personal room so we can target this user without tracking socketId
-    socket.join(uid);
-    // Send current count to the connecting socket immediately
-    socket.emit('player-count', { count: onlineUsers.size });
-    // Notify all connected clients that this user is now online
-    io.emit('user-online', { userId: uid, count: onlineUsers.size });
+
+    try {
+      const redis = getRedisClient();
+      await redis.sadd('online_users', uid);
+      const onlineCount = await redis.scard('online_users');
+
+      // Clear any pending disconnect timeout for this user
+      if (disconnectTimeouts.has(uid)) {
+        clearTimeout(disconnectTimeouts.get(uid));
+        disconnectTimeouts.delete(uid);
+      }
+
+      // Join personal room so we can target this user without tracking socketId
+      socket.join(uid);
+
+      // Send current count to the connecting socket immediately
+      socket.emit('player-count', { count: onlineCount });
+
+      // Notify all connected clients that this user is now online
+      io.emit('user-online', { userId: uid, count: onlineCount });
+    } catch (err) {
+      console.error('Redis error on connect:', err);
+    }
 
     // Matchmaking handlers
     handleJoinQueue(io, socket);
@@ -79,10 +100,24 @@ export const initializeSocket = (server) => {
     console.log('✅ Registering disconnect handler for:', socket.user.name);
     // Disconnect handler
     socket.on('disconnect', () => {
-      onlineUsers.delete(uid);
-      // Notify all connected clients that this user is now offline
-      io.emit('user-offline', { userId: uid, count: onlineUsers.size });
       console.log('🔌 DISCONNECT FIRED for:', socket.user.name);
+
+      const timeout = setTimeout(async () => {
+        try {
+          const redis = getRedisClient();
+          await redis.srem('online_users', uid);
+          const onlineCount = await redis.scard('online_users');
+
+          // Notify all connected clients that this user is now offline
+          io.emit('user-offline', { userId: uid, count: onlineCount });
+          disconnectTimeouts.delete(uid);
+        } catch (err) {
+          console.error('Redis error on disconnect timeout:', err);
+        }
+      }, 5000); // 5-second delay to handle transparent reconnects
+
+      disconnectTimeouts.set(uid, timeout);
+
       handleQueueDisconnect(socket);
       onPlayerDisconnect(io, socket);
       onContestDisconnect(io, socket);
