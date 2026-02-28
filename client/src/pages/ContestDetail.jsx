@@ -251,6 +251,15 @@ const ContestDetail = () => {
           {/* ── Problems Tab ── */}
           {tab === 'problems' && (
             <div className="space-y-2">
+              {/* Notice for hidden problems before contest starts */}
+              {isScheduled && !contest.isCreator && !isAdmin && contest.problems?.length > 0 && (
+                <div className="flex items-center gap-3 p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 mb-3">
+                  <span className="text-xl">🔒</span>
+                  <p className="text-sm text-blue-300">
+                    Problem details will be revealed when the contest starts. Only difficulty and point values are shown.
+                  </p>
+                </div>
+              )}
               {contest.problems?.length === 0 ? (
                 <div className="text-center py-16 rounded-2xl bg-slate-800/30 border border-slate-700/50">
                   <div className="text-4xl mb-3">📝</div>

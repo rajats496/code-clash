@@ -141,6 +141,7 @@ const getPointsForProblem = (problem, index) => {
 export const listContests = async (req, res) => {
   try {
     const { status, page = 1, limit = 20 } = req.query;
+    const isAdmin = req.user?.role === 'admin';
 
     const filter = {};
     if (status && status !== 'all') {
@@ -161,12 +162,27 @@ export const listContests = async (req, res) => {
 
     const total = await Contest.countDocuments(filter);
 
+    const userId = req.user?._id?.toString();
+
     // Add participant count without sending full participant list
-    const contestsWithCounts = contests.map((c) => ({
-      ...c,
-      participantCount: c.participants?.length || 0,
-      participants: undefined, // Don't send full list
-    }));
+    // Hide problem details for non-admin users on contests that haven't started
+    const contestsWithCounts = contests.map((c) => {
+      const isCreator = c.createdBy?._id?.toString() === userId;
+      const canSeeProblemDetails = isAdmin || isCreator || c.status === 'active' || c.status === 'ended';
+
+      return {
+        ...c,
+        participantCount: c.participants?.length || 0,
+        participants: undefined, // Don't send full list
+        // Mask problem details for scheduled/draft contests (non-admins)
+        problems: canSeeProblemDetails
+          ? c.problems
+          : c.problems.map((cp, idx) => ({
+            ...cp,
+            problem: { _id: cp.problem?._id, difficulty: cp.problem?.difficulty, title: `Problem ${String.fromCharCode(65 + idx)}` },
+          })),
+      };
+    });
 
     res.json({
       contests: contestsWithCounts,
@@ -185,6 +201,9 @@ export const listContests = async (req, res) => {
 // ─────────────────────────────────────────────
 export const getContest = async (req, res) => {
   try {
+    const userId = req.user._id.toString();
+    const isAdmin = req.user.role === 'admin';
+
     const contest = await Contest.findById(req.params.id)
       .populate('problems.problem', 'title description difficulty testCases timeLimit memoryLimit')
       .populate('createdBy', 'name picture')
@@ -194,20 +213,37 @@ export const getContest = async (req, res) => {
       return res.status(404).json({ error: 'Contest not found' });
     }
 
-    const userId = req.user._id.toString();
     const isRegistered = contest.participants?.some(
       (p) => p.user.toString() === userId
     );
     const isCreator = contest.createdBy._id.toString() === userId;
 
-    // Filter out hidden test cases for participants
-    if (contest.problems) {
-      contest.problems = contest.problems.map((cp) => {
-        if (cp.problem?.testCases) {
-          cp.problem.testCases = cp.problem.testCases.filter((tc) => !tc.isHidden);
-        }
-        return cp;
-      });
+    // Can the user see full problem details?
+    // YES if: admin, creator, or contest is active/ended
+    // NO if: contest is scheduled/draft and user is a regular participant
+    const canSeeProblemDetails = isAdmin || isCreator || contest.status === 'active' || contest.status === 'ended';
+
+    if (canSeeProblemDetails) {
+      // Filter out hidden test cases for participants
+      if (contest.problems) {
+        contest.problems = contest.problems.map((cp) => {
+          if (cp.problem?.testCases) {
+            cp.problem.testCases = cp.problem.testCases.filter((tc) => !tc.isHidden);
+          }
+          return cp;
+        });
+      }
+    } else {
+      // Contest hasn't started — mask problem details for regular users
+      contest.problems = (contest.problems || []).map((cp, idx) => ({
+        ...cp,
+        problem: {
+          _id: cp.problem?._id,
+          difficulty: cp.problem?.difficulty,
+          title: `Problem ${String.fromCharCode(65 + idx)}`,
+          // No description, no testCases
+        },
+      }));
     }
 
     // Get participant's problem status if registered
