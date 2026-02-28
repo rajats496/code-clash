@@ -396,15 +396,45 @@ const ContestArena = () => {
     }
   }, [activeTab, selectedProblem, contest, fetchSubmissions]);
 
-  // Fetch leaderboard
+  // Fetch leaderboard (limited to top 20)
   const fetchLeaderboard = useCallback(async () => {
     try {
-      const res = await contestApi.leaderboard(id, { limit: 1000 });
+      const res = await contestApi.leaderboard(id, { limit: 20 });
       setLeaderboard(res.data.leaderboard || []);
     } catch { /* ignore */ }
   }, [id]);
 
-  // Auto-fetch leaderboard on mount + on updates
+  // Throttled leaderboard refresh — at most once every 12 seconds
+  const leaderboardThrottleRef = useRef(null);
+  const leaderboardPendingRef = useRef(false);
+
+  const throttledFetchLeaderboard = useCallback(() => {
+    // If a throttle timer is already running, just mark as pending
+    if (leaderboardThrottleRef.current) {
+      leaderboardPendingRef.current = true;
+      return;
+    }
+    // Fetch immediately
+    fetchLeaderboard();
+    // Start throttle window
+    leaderboardThrottleRef.current = setTimeout(() => {
+      leaderboardThrottleRef.current = null;
+      // If updates came in during the throttle window, fetch once more
+      if (leaderboardPendingRef.current) {
+        leaderboardPendingRef.current = false;
+        fetchLeaderboard();
+      }
+    }, 12000); // 12 second throttle
+  }, [fetchLeaderboard]);
+
+  // Cleanup throttle timer on unmount
+  useEffect(() => {
+    return () => {
+      if (leaderboardThrottleRef.current) clearTimeout(leaderboardThrottleRef.current);
+    };
+  }, []);
+
+  // Fetch leaderboard once on mount
   useEffect(() => { fetchLeaderboard(); }, [fetchLeaderboard]);
 
   // Socket events
@@ -437,7 +467,8 @@ const ContestArena = () => {
           addEvent('Runtime Error.', '#f87171');
         }
         fetchContest();
-        fetchLeaderboard();
+        // Leaderboard update is throttled — will be picked up by the socket event
+        throttledFetchLeaderboard();
         if (activeTab === 'Submissions') fetchSubmissions();
       }
     };
@@ -450,14 +481,14 @@ const ContestArena = () => {
 
     socket.on('contest-submission-result', handleResult);
     socket.on('contest-ended', handleEnded);
-    socket.on('contest-leaderboard-update', fetchLeaderboard);
+    socket.on('contest-leaderboard-update', throttledFetchLeaderboard);
 
     return () => {
       socket.off('contest-submission-result', handleResult);
       socket.off('contest-ended', handleEnded);
-      socket.off('contest-leaderboard-update', fetchLeaderboard);
+      socket.off('contest-leaderboard-update', throttledFetchLeaderboard);
     };
-  }, [id, fetchContest, fetchLeaderboard]);
+  }, [id, fetchContest, throttledFetchLeaderboard]);
 
   // Submit code
   const handleSubmit = async (isSubmit = true) => {
