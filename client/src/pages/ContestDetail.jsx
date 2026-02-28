@@ -15,6 +15,7 @@ const ContestDetail = () => {
   const [loading, setLoading] = useState(true);
   const [registering, setRegistering] = useState(false);
   const [starting, setStarting] = useState(false);
+  const [showStartConfirm, setShowStartConfirm] = useState(false);
   const [tab, setTab] = useState('problems');
   const [countdown, setCountdown] = useState('');
 
@@ -91,13 +92,14 @@ const ContestDetail = () => {
     catch (err) { alert(err.response?.data?.error || 'Failed to unregister'); }
   };
 
-  const handleStart = async () => {
-    console.log('🟢 Start button clicked, contest id:', id);
-    if (!window.confirm('Start contest now? All registered users will be able to submit.')) {
-      console.log('🔴 User cancelled confirm dialog');
-      return;
-    }
+  const handleStart = () => {
+    console.log('🟢 Start button clicked, showing confirm modal');
+    setShowStartConfirm(true);
+  };
+
+  const confirmStart = async () => {
     console.log('🟢 Confirm accepted, calling contestApi.start...');
+    setShowStartConfirm(false);
     setStarting(true);
     try {
       const res = await contestApi.start(id);
@@ -106,8 +108,7 @@ const ContestDetail = () => {
     } catch (err) {
       console.error('🔴 Start contest error:', err);
       console.error('🔴 Error response:', err.response?.data);
-      console.error('🔴 Error status:', err.response?.status);
-      alert(err.response?.data?.error || 'Failed to start');
+      alert(err.response?.data?.error || 'Failed to start contest');
     } finally {
       setStarting(false);
     }
@@ -383,6 +384,36 @@ const ContestDetail = () => {
             </div>
           )}
         </div>
+
+        {/* Start Contest Confirmation Modal */}
+        {showStartConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)' }}>
+            <div className="w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl"
+              style={{ backgroundColor: '#1e293b', border: '1px solid rgba(16,185,129,0.3)' }}>
+              <div className="h-1 w-full bg-gradient-to-r from-emerald-500 to-teal-600" />
+              <div className="px-6 py-6 text-center">
+                <div className="w-14 h-14 rounded-xl flex items-center justify-center text-2xl mx-auto mb-4"
+                  style={{ backgroundColor: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)' }}>▶</div>
+                <h3 className="text-lg font-black text-white mb-2">Start Contest Now?</h3>
+                <p className="text-sm text-slate-400 leading-relaxed mb-6">
+                  All registered participants will be able to submit code. The contest timer will begin immediately.
+                </p>
+                <div className="flex flex-col gap-2.5">
+                  <button onClick={confirmStart} disabled={starting}
+                    className="w-full py-3 rounded-xl text-sm font-bold text-white active:scale-95 transition-all disabled:opacity-60"
+                    style={{ background: 'linear-gradient(135deg, #10b981, #0d9488)', boxShadow: '0 0 20px rgba(16,185,129,0.3)' }}>
+                    {starting ? '⏳ Starting...' : '✅ Yes, Start Contest'}
+                  </button>
+                  <button onClick={() => setShowStartConfirm(false)}
+                    className="w-full py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white transition-colors"
+                    style={{ border: '1px solid rgba(100,116,139,0.3)' }}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </AppShell>
   );
