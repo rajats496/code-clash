@@ -20,7 +20,7 @@ export const connectSocket = (token) => {
       token,
     },
     autoConnect: false,
-    transports: ['websocket'],
+    transports: ['polling', 'websocket'],
     reconnection: true,
     reconnectionAttempts: Infinity,
     reconnectionDelay: 1000,
