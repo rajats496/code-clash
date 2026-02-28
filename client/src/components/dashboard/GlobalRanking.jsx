@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 
@@ -34,8 +35,8 @@ const GlobalRanking = () => {
         <div className="lc-card">
             {/* Header */}
             <div className="px-6 py-4 border-b" style={{ borderColor: 'var(--lc-border)' }}>
-                <h3 className="text-lg font-bold text-white mb-1">🏆 Tournament Leaderboard</h3>
-                <p className="text-xs text-[var(--lc-text-primary)]">Weekly Clash Series - Top Players</p>
+                <h3 className="text-lg font-bold text-white mb-1">🏆 Global Leaderboard</h3>
+                <p className="text-xs text-[var(--lc-text-primary)]">Top Players by Rating</p>
             </div>
 
             {/* Rankings */}
@@ -115,13 +116,13 @@ const GlobalRanking = () => {
                 )}
             </div>
 
-            <a
-                href="/history"
+            <Link
+                to="/leaderboard"
                 className="block w-full text-center py-3 text-sm font-bold text-[var(--lc-accent-orange)] hover:bg-white/5 transition-colors uppercase tracking-wide border-t"
                 style={{ borderColor: 'var(--lc-border)' }}
             >
                 View Full Leaderboard →
-            </a>
+            </Link>
         </div>
     );
 };
