@@ -202,6 +202,8 @@ const createMatchAndNotify = async (io, player1, player2, options = {}) => {
  * Handle disconnect while in queue
  */
 export const handleQueueDisconnect = (socket) => {
+  if (!socket?.user?._id) return;
+
   const userId = socket.user._id.toString();
 
   if (isInQueue(userId)) {

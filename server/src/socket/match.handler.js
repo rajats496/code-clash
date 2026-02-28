@@ -541,10 +541,11 @@ export const handleLeaveMatch = (io, socket) => {
  * Handle player disconnect
  */
 export const onPlayerDisconnect = (io, socket) => {
-  console.log('🔌 onPlayerDisconnect called for:', socket.user.name);
+  if (!socket?.user?._id) return;
 
   try {
     const userId = socket.user._id.toString();
+    console.log('🔌 onPlayerDisconnect called for:', socket.user.name);
     const match = getMatchByUserId(userId);
 
     if (!match) {
