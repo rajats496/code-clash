@@ -29,6 +29,7 @@ const Matchmaking = () => {
   const [joinError, setJoinError] = useState('');
   const [codeCopied, setCodeCopied] = useState(false);
   const copyTimer = useRef(null);
+  const privatePhaseRef = useRef(privatePhase);
 
   // Timer effect
   useEffect(() => {
@@ -67,26 +68,31 @@ const Matchmaking = () => {
     };
   }, []);
 
-  // Socket listeners
+  // Keep privatePhaseRef in sync so the error handler always reads fresh value
+  useEffect(() => {
+    privatePhaseRef.current = privatePhase;
+  }, [privatePhase]);
+
+  // Socket listeners — stable deps (no privatePhase) to avoid teardown/re-register
   useEffect(() => {
     const socket = getSocket();
     if (!socket) return;
 
-    socket.on('queue-joined', (data) => {
+    const onQueueJoined = (data) => {
       console.log('✅ Joined queue:', data);
       setInQueue(true);
       setQueuePosition(data.position);
       setMatchTimer(0);
-    });
+    };
 
-    socket.on('queue-left', (data) => {
+    const onQueueLeft = (data) => {
       console.log('🚪 Left queue:', data);
       setInQueue(false);
       setQueuePosition(null);
       setMatchTimer(0);
-    });
+    };
 
-    socket.on('match-found', (data) => {
+    const onMatchFound = (data) => {
       console.log('🎮 Match found!', data);
       setInQueue(false);
       setPrivatePhase('idle');
@@ -96,29 +102,46 @@ const Matchmaking = () => {
       resetMatchState();
       localStorage.setItem('currentMatch', JSON.stringify(data));
       navigate('/arena');
-    });
+    };
 
-    // Private room events
-    socket.on('private-room-created', ({ code, totalRounds }) => {
+    const onPrivateRoomCreated = ({ code, totalRounds }) => {
       setMyRoomCode(code);
       setPrivatePhase('waiting');
-    });
+    };
 
-    socket.on('private-room-cancelled', () => {
+    const onPrivateRoomCancelled = () => {
       setPrivatePhase('idle');
       setMyRoomCode('');
-    });
+    };
 
-    socket.on('private-room-expired', () => {
+    const onPrivateRoomExpired = () => {
       setPrivatePhase('idle');
       setMyRoomCode('');
-    });
+    };
 
-    socket.on('error', (data) => {
+    // Stale match-related errors are expected when returning from a completed match.
+    // Suppress them so users don't see confusing alerts.
+    const STALE_MATCH_MSGS = [
+      'Match not found',
+      'not in this match',
+      'Match is not',
+      'not in a match',
+      'not in progress',
+    ];
+
+    const onError = (data) => {
       console.error('❌ Error:', data.message);
+
+      // Ignore stale match errors — they fire when navigating back from a finished match
+      const isStaleMatchError = data.message && STALE_MATCH_MSGS.some((m) => data.message.includes(m));
+      if (isStaleMatchError) {
+        console.log('ℹ️ Ignoring stale match error on Matchmaking page:', data.message);
+        return;
+      }
+
       if (data.message === 'Already in queue') {
         alert('⚠️ You are already in the matchmaking queue!');
-      } else if (privatePhase === 'joining') {
+      } else if (privatePhaseRef.current === 'joining') {
         setJoinError(data.message);
         setPrivatePhase('idle');
       } else {
@@ -127,18 +150,26 @@ const Matchmaking = () => {
       if (data.message !== 'Already in queue') {
         setInQueue(false);
       }
-    });
+    };
+
+    socket.on('queue-joined', onQueueJoined);
+    socket.on('queue-left', onQueueLeft);
+    socket.on('match-found', onMatchFound);
+    socket.on('private-room-created', onPrivateRoomCreated);
+    socket.on('private-room-cancelled', onPrivateRoomCancelled);
+    socket.on('private-room-expired', onPrivateRoomExpired);
+    socket.on('error', onError);
 
     return () => {
-      socket.off('queue-joined');
-      socket.off('queue-left');
-      socket.off('match-found');
-      socket.off('private-room-created');
-      socket.off('private-room-cancelled');
-      socket.off('private-room-expired');
-      socket.off('error');
+      socket.off('queue-joined', onQueueJoined);
+      socket.off('queue-left', onQueueLeft);
+      socket.off('match-found', onMatchFound);
+      socket.off('private-room-created', onPrivateRoomCreated);
+      socket.off('private-room-cancelled', onPrivateRoomCancelled);
+      socket.off('private-room-expired', onPrivateRoomExpired);
+      socket.off('error', onError);
     };
-  }, [navigate, privatePhase]);
+  }, [navigate]);
 
   // Handlers
   const handleJoinQueue = () => {

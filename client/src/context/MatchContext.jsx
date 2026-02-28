@@ -46,6 +46,7 @@ export const MatchProvider = ({ children }) => {
 
   const resetMatchState = () => {
     console.log('🧹 Resetting match state');
+    setMatchState(null);
     setMatchEndResult(null);
     setSubmissionStatus(null);
     setTimer({ currentTime: 0, isRunning: false });
@@ -193,6 +194,9 @@ export const MatchProvider = ({ children }) => {
     // Match end
     socket.on('match-end', (data) => {
       console.log('🏁 Match ended:', data);
+
+      // Mark matchState as completed so Arena UI stops showing 'Live'
+      setMatchState((prev) => prev ? { ...prev, status: 'completed' } : prev);
 
       setTimer((prevTimer) => ({
         currentTime: prevTimer.currentTime,

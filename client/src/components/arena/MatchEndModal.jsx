@@ -21,6 +21,9 @@ const MatchEndModal = ({ result }) => {
 
   const currentUserId = user?._id || user?.id;
   const isWin = result.winner === currentUserId;
+  const myScore = isWin ? result.winnerScore : result.loserScore;
+  const oppScore = isWin ? result.loserScore : result.winnerScore;
+  const hasScores = myScore !== undefined && oppScore !== undefined;
 
   return (
     <div
@@ -74,6 +77,31 @@ const MatchEndModal = ({ result }) => {
           <p className="text-xs text-center mt-2 leading-relaxed max-w-[240px]" style={{ color: 'var(--lc-text-primary)' }}>
             {result.message || 'The match has ended.'}
           </p>
+
+          {/* Final Score */}
+          {hasScores && (
+            <div
+              className="mt-5 flex items-center justify-center gap-6 px-6 py-3 rounded-lg"
+              style={{
+                backgroundColor: 'var(--lc-card, rgba(255,255,255,0.04))',
+                border: '1px solid var(--lc-border, rgba(255,255,255,0.08))',
+              }}
+            >
+              <div className="text-center">
+                <p className="text-[10px] uppercase tracking-wider text-gray-500 mb-0.5">You</p>
+                <p className="text-2xl font-black font-mono" style={{ color: isWin ? '#00b8a3' : '#f87171' }}>
+                  {myScore}
+                </p>
+              </div>
+              <span className="text-gray-600 text-lg">—</span>
+              <div className="text-center">
+                <p className="text-[10px] uppercase tracking-wider text-gray-500 mb-0.5">Opp</p>
+                <p className="text-2xl font-black font-mono" style={{ color: isWin ? '#f87171' : '#00b8a3' }}>
+                  {oppScore}
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Reason pill */}
           {result.reason && (

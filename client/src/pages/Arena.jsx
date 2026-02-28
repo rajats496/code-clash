@@ -741,18 +741,18 @@ const Arena = () => {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => handleSubmit(false)}
-                disabled={submissionStatus?.status === 'processing' || submissionStatus?.status === 'pending'}
+                disabled={submissionStatus?.status === 'processing' || submissionStatus?.status === 'pending' || matchState?.status === 'completed'}
                 className="px-4 py-1.5 rounded-lg text-xs font-mono font-bold transition-all hover:opacity-80 disabled:opacity-40"
                 style={{ backgroundColor: 'var(--lc-card)', border: '1px solid var(--lc-border)', color: '#9ca3af' }}>
                 Run
               </button>
               <button onClick={() => handleSubmit(true)}
-                disabled={submissionStatus?.status === 'processing' || submissionStatus?.status === 'pending'}
+                disabled={submissionStatus?.status === 'processing' || submissionStatus?.status === 'pending' || matchState?.status === 'completed'}
                 className="flex items-center gap-1.5 px-5 py-1.5 rounded-lg text-xs font-mono font-bold transition-all hover:opacity-90 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ background: 'linear-gradient(135deg,#ffa116,#ff7a00)', color: '#1a1a1a', boxShadow: '0 0 12px rgba(255,161,22,0.25)' }}>
                 {submissionStatus?.status === 'processing' || submissionStatus?.status === 'pending'
                   ? <><span className="w-3 h-3 border-2 border-black/30 border-t-black rounded-full animate-spin" /><span>Running...</span></>
-                  : 'Submit'
+                  : matchState?.status === 'completed' ? 'Match Ended' : 'Submit'
                 }
               </button>
             </div>
