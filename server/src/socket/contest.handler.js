@@ -260,16 +260,10 @@ const startContestTimer = (io, contestId, startTime, endTime) => {
 
   const intervalId = setInterval(() => {
     const now = Date.now();
-    const elapsed = Math.floor((now - new Date(startTime).getTime()) / 1000);
     const remaining = Math.max(0, Math.floor((new Date(endTime).getTime() - now) / 1000));
 
-    io.to(room).emit('contest-timer', {
-      contestId,
-      elapsed,
-      remaining,
-      startTime,
-      endTime,
-    });
+    // Clients compute timer locally from contest.endTime; no need to broadcast every 5s
+    // io.to(room).emit('contest-timer', { contestId, elapsed, remaining, startTime, endTime });
 
     // Auto-stop timer when contest ends
     if (remaining <= 0) {

@@ -466,29 +466,40 @@ const ContestArena = () => {
         } else if (data.verdict === 'Runtime Error') {
           addEvent('Runtime Error.', '#f87171');
         }
-        fetchContest();
-        // Leaderboard update is throttled — will be picked up by the socket event
-        throttledFetchLeaderboard();
+        // No fetchContest() here — solvedSet is already updated locally above
+        // Leaderboard will be updated via the server-pushed socket event
         if (activeTab === 'Submissions') fetchSubmissions();
       }
     };
 
     const handleEnded = () => {
       fetchContest();
+      fetchLeaderboard(); // Final leaderboard fetch on contest end
       setTimeLeft('Ended');
       addEvent('Contest has ended!', '#ef4444');
     };
 
+    // Handle server-pushed leaderboard data (no REST call needed)
+    const handleLeaderboardUpdate = (data) => {
+      if (data.leaderboard) {
+        // Server pushed the full leaderboard data — use directly
+        setLeaderboard(data.leaderboard);
+      } else {
+        // Fallback: fetch via REST (throttled)
+        throttledFetchLeaderboard();
+      }
+    };
+
     socket.on('contest-submission-result', handleResult);
     socket.on('contest-ended', handleEnded);
-    socket.on('contest-leaderboard-update', throttledFetchLeaderboard);
+    socket.on('contest-leaderboard-update', handleLeaderboardUpdate);
 
     return () => {
       socket.off('contest-submission-result', handleResult);
       socket.off('contest-ended', handleEnded);
-      socket.off('contest-leaderboard-update', throttledFetchLeaderboard);
+      socket.off('contest-leaderboard-update', handleLeaderboardUpdate);
     };
-  }, [id, fetchContest, throttledFetchLeaderboard]);
+  }, [id, fetchContest, fetchLeaderboard, throttledFetchLeaderboard]);
 
   // Submit code
   const handleSubmit = async (isSubmit = true) => {

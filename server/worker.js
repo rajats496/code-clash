@@ -9,7 +9,8 @@ import { runTestCases } from './src/services/contest-execution.service.js';
 import { ContestSubmission } from './src/models/ContestSubmission.model.js';
 import { Contest } from './src/models/Contest.model.js';
 import { Problem } from './src/models/Problem.model.js';
-import { updateLeaderboard } from './src/services/leaderboard.service.js';
+import { updateLeaderboard, getLeaderboard } from './src/services/leaderboard.service.js';
+import { User } from './src/models/User.model.js';
 
 const QUEUE_NAME = 'contest-submissions';
 const CONCURRENCY = parseInt(process.env.WORKER_CONCURRENCY || '10');
@@ -30,16 +31,54 @@ const emitSubmissionResult = (userId, contestId, result) => {
     }
 };
 
-const emitLeaderboardUpdate = (contestId) => {
+const emitLeaderboardUpdate = async (contestId) => {
     try {
         const redis = getRedisClient();
+
+        // Read top 20 leaderboard entries from Redis (no REST call needed for clients)
+        const contest = await Contest.findById(contestId).select('scoringType').lean();
+        if (!contest) return;
+
+        const entries = await getLeaderboard(contestId, contest.scoringType, 0, 20);
+
+        // Enrich with user info from MongoDB
+        if (entries.length > 0) {
+            const userIds = entries.map(e => e.userId);
+            const users = await User.find(
+                { _id: { $in: userIds } },
+                'name picture rating'
+            ).lean();
+
+            const userMap = {};
+            users.forEach(u => { userMap[u._id.toString()] = u; });
+
+            entries.forEach(entry => {
+                const user = userMap[entry.userId];
+                if (user) {
+                    entry.name = user.name;
+                    entry.picture = user.picture;
+                    entry.rating = user.rating;
+                }
+            });
+        }
+
+        // Push complete leaderboard data via socket — clients use it directly
         redis.publish('socket-emits', JSON.stringify({
             room: `contest-${contestId}`,
             event: 'contest-leaderboard-update',
-            data: { contestId, timestamp: Date.now() }
+            data: { contestId, leaderboard: entries, timestamp: Date.now() }
         }));
     } catch (err) {
         console.error('Failed to emit leaderboard update via Redis:', err.message);
+        // Fallback: emit without data so clients fetch via REST
+        try {
+            const redis = getRedisClient();
+            redis.publish('socket-emits', JSON.stringify({
+                room: `contest-${contestId}`,
+                event: 'contest-leaderboard-update',
+                data: { contestId, timestamp: Date.now() }
+            }));
+        } catch { /* ignore */ }
     }
 };
 
