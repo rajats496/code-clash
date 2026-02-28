@@ -647,6 +647,7 @@ export const getMySubmissions = async (req, res) => {
 // ─────────────────────────────────────────────
 export const startContest = async (req, res) => {
   try {
+    console.log(`🟢 startContest called by user ${req.user.name} (role: ${req.user.role}) for contest ${req.params.id}`);
     const contest = await Contest.findById(req.params.id);
     if (!contest) {
       return res.status(404).json({ error: 'Contest not found' });

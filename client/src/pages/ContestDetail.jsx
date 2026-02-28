@@ -92,11 +92,25 @@ const ContestDetail = () => {
   };
 
   const handleStart = async () => {
-    if (!window.confirm('Start contest now? All registered users will be able to submit.')) return;
+    console.log('🟢 Start button clicked, contest id:', id);
+    if (!window.confirm('Start contest now? All registered users will be able to submit.')) {
+      console.log('🔴 User cancelled confirm dialog');
+      return;
+    }
+    console.log('🟢 Confirm accepted, calling contestApi.start...');
     setStarting(true);
-    try { await contestApi.start(id); fetchContest(); }
-    catch (err) { alert(err.response?.data?.error || 'Failed to start'); }
-    finally { setStarting(false); }
+    try {
+      const res = await contestApi.start(id);
+      console.log('🟢 Start contest response:', res.data);
+      fetchContest();
+    } catch (err) {
+      console.error('🔴 Start contest error:', err);
+      console.error('🔴 Error response:', err.response?.data);
+      console.error('🔴 Error status:', err.response?.status);
+      alert(err.response?.data?.error || 'Failed to start');
+    } finally {
+      setStarting(false);
+    }
   };
 
   const handleEnterArena = () => navigate(`/contests/${id}/arena`);
