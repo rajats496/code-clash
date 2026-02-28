@@ -11,6 +11,7 @@ import {
   createContest,
   listContests,
   getContest,
+  getUpcomingContest,
   registerForContest,
   unregisterFromContest,
   submitContestCode,
@@ -24,6 +25,9 @@ import {
 } from '../controllers/contest.controller.js';
 
 const router = Router();
+
+// ── Public: next upcoming contest (no auth, for home banner) ──────────
+router.get('/upcoming', getUpcomingContest);
 
 // ── Public / List ────────────────────────────────────────────────────
 router.get('/', authenticateToken, listContests);

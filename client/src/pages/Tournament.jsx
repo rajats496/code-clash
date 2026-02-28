@@ -54,10 +54,6 @@ const Tournament = () => {
                 </div>
                 <div className="space-y-3 mb-4">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-400">Prize Pool</span>
-                    <span className="font-bold text-green-400">$5,000</span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
                     <span className="text-gray-400">Players</span>
                     <span className="font-bold">1,234</span>
                   </div>
@@ -82,10 +78,6 @@ const Tournament = () => {
                 </div>
                 <div className="space-y-3 mb-4">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-400">Prize Pool</span>
-                    <span className="font-bold text-green-400">$500</span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
                     <span className="text-gray-400">Players</span>
                     <span className="font-bold">567</span>
                   </div>
@@ -109,10 +101,6 @@ const Tournament = () => {
                   <TargetIcon size={24} className="text-[#ffa116]" />
                 </div>
                 <div className="space-y-3 mb-4">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-400">Prize Pool</span>
-                    <span className="font-bold text-green-400">$200</span>
-                  </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-gray-400">Players</span>
                     <span className="font-bold">892</span>

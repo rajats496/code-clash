@@ -136,6 +136,45 @@ const getPointsForProblem = (problem, index) => {
 };
 
 // ─────────────────────────────────────────────
+//  GET /api/contests/upcoming — Next upcoming contest (public, for home banner)
+// ─────────────────────────────────────────────
+export const getUpcomingContest = async (req, res) => {
+  try {
+    const now = new Date();
+    const contest = await Contest.findOne({
+      status: { $in: ['scheduled', 'active'] },
+      startTime: { $gte: now },
+    })
+      .select('title description startTime endTime duration status participants')
+      .sort({ startTime: 1 })
+      .lean();
+
+    if (!contest) {
+      return res.json({ success: true, contest: null });
+    }
+
+    const participantCount = contest.participants?.length ?? 0;
+
+    res.json({
+      success: true,
+      contest: {
+        id: contest._id,
+        title: contest.title,
+        description: contest.description || '',
+        startTime: contest.startTime,
+        endTime: contest.endTime,
+        duration: contest.duration,
+        status: contest.status,
+        participantCount,
+      },
+    });
+  } catch (err) {
+    console.error('❌ getUpcomingContest error:', err);
+    res.status(500).json({ success: false, contest: null });
+  }
+};
+
+// ─────────────────────────────────────────────
 //  GET /api/contests — List contests
 // ─────────────────────────────────────────────
 export const listContests = async (req, res) => {

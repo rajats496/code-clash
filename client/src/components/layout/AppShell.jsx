@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useMatch } from '../../context/MatchContext';
+import { getSocket } from '../../services/socket';
 import '../../App.css';
 
 const AppShell = ({ children }) => {
@@ -9,6 +10,7 @@ const AppShell = ({ children }) => {
   const navigate = useNavigate();
   const { isAuthenticated, user, logout, token } = useAuth();
   const { chatNotifications, clearChatNotifications, dismissChatNotification } = useMatch();
+  const [playersOnline, setPlayersOnline] = useState(null);
   const [notifOpen, setNotifOpen] = useState(false);
   const notifRef = useRef(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -19,6 +21,34 @@ const AppShell = ({ children }) => {
   const [reportSent, setReportSent] = useState(false);
   const [logoutConfirm, setLogoutConfirm] = useState(false);
   const [busyFR, setBusyFR] = useState(new Set()); // friend-request IDs being actioned
+
+  // Real-time players online (Socket.io)
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+
+    const onCount = (data) => {
+      const count = data?.count;
+      if (typeof count === 'number') setPlayersOnline(count);
+    };
+
+    const requestCount = () => {
+      if (socket.connected) socket.emit('get-player-count');
+    };
+
+    requestCount();
+    socket.on('connect', requestCount);
+    socket.on('player-count', onCount);
+    socket.on('user-online', onCount);
+    socket.on('user-offline', onCount);
+
+    return () => {
+      socket.off('connect', requestCount);
+      socket.off('player-count', onCount);
+      socket.off('user-online', onCount);
+      socket.off('user-offline', onCount);
+    };
+  }, [isAuthenticated]);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -600,7 +630,11 @@ const AppShell = ({ children }) => {
           </div>
           <div className="flex items-center gap-1">
             <span className="material-symbols-outlined text-[12px]">group</span>
-            <span>42,109 Players Online</span>
+            <span>
+              {playersOnline !== null
+                ? `${playersOnline.toLocaleString()} Players Online`
+                : '— Players Online'}
+            </span>
           </div>
         </div>
         <div className="flex gap-4">

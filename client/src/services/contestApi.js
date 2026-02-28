@@ -8,6 +8,9 @@ const contestApi = {
   // List contests (with optional status filter)
   list: (params = {}) => api.get('/contests', { params }),
 
+  // Next upcoming contest (public, for home banner)
+  upcoming: () => api.get('/contests/upcoming'),
+
   // Get contest details
   get: (id) => api.get(`/contests/${id}`),
 

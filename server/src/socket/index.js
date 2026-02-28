@@ -60,6 +60,11 @@ export const initializeSocket = (server) => {
     // Notify all connected clients that this user is now online
     io.emit('user-online', { userId: uid, count: onlineUsers.size });
 
+    // Allow client to request current player count (e.g. footer on mount)
+    socket.on('get-player-count', () => {
+      socket.emit('player-count', { count: onlineUsers.size });
+    });
+
     // Matchmaking handlers
     handleJoinQueue(io, socket);
     handleLeaveQueue(io, socket);

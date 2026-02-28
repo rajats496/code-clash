@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import AppShell from '../components/layout/AppShell';
 import UserProfileCard from '../components/dashboard/UserProfileCard';
 import FriendsList from '../components/dashboard/FriendsList';
-import TournamentBanner from '../components/dashboard/TournamentBanner';
+import UpcomingContestSection from '../components/dashboard/UpcomingContestSection';
 import UpcomingClashes from '../components/dashboard/UpcomingClashes';
 import GlobalRanking from '../components/dashboard/GlobalRanking';
 import PrivateRoomCard from '../components/dashboard/PrivateRoomCard';
@@ -27,8 +27,8 @@ const Home = () => {
   return (
     <AppShell>
       <main className="max-w-[1200px] mx-auto p-6 pb-14 space-y-6">
-        {/* Featured Tournament Banner */}
-        <TournamentBanner />
+        {/* Upcoming Contest Banner (real or placeholder) */}
+        <UpcomingContestSection />
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
