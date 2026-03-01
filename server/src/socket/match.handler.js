@@ -89,13 +89,27 @@ const checkMatchWinner = (match) => {
 export const handleJoinMatch = (io, socket) => {
   socket.on('join-match', async (data) => {
     try {
-      const { roomId } = data;
+      const roomId = data?.roomId != null ? String(data.roomId) : null;
+      if (!roomId) {
+        return socket.emit('error', { message: 'Room ID required' });
+      }
       const userId = socket.user._id.toString();
 
       const match = getMatch(roomId);
 
       if (!match) {
         return socket.emit('error', { message: 'Match not found' });
+      }
+
+      // Match already ended (e.g. opponent surrendered before this socket joined)
+      if (match.status === 'completed' && match.winner) {
+        socket.emit('match-end', {
+          roomId,
+          winner: match.winner,
+          reason: 'opponent-left',
+          message: 'You win! Opponent left the match.',
+        });
+        return;
       }
 
       if (!match.players[userId]) {
@@ -487,50 +501,52 @@ export const handleCodeSubmit = (io, socket) => {
 };
 
 /**
- * Handle player voluntarily leaving match
+ * Handle player voluntarily leaving match (surrender)
  */
 export const handleLeaveMatch = (io, socket) => {
   socket.on('leave-match', async (data) => {
     try {
-      const { roomId } = data;
+      const roomId = data?.roomId != null ? String(data.roomId) : null;
+      if (!roomId) return;
+
       const userId = socket.user._id.toString();
-
-      console.log(`🚪 ${socket.user.name} is leaving match ${roomId}`);
-
       const match = getMatch(roomId);
       if (!match) return;
 
       const opponentId = Object.keys(match.players).find((id) => id !== userId);
 
-      if (opponentId && match.players[opponentId]?.connected) {
-        stopTimer(roomId);
+      console.log(`🚪 ${socket.user.name} is leaving match ${roomId}`);
 
+      if (opponentId) {
+        stopTimer(roomId);
         match.status = 'completed';
         match.winner = opponentId;
 
-        await Match.findOneAndUpdate(
-          { roomId },
-          {
-            winner: opponentId,
-            status: 'completed',
-            completedAt: new Date(),
-            duration: match.timer.currentTime,
-          }
-        );
+        if (match.players[opponentId]?.connected) {
+          await Match.findOneAndUpdate(
+            { roomId },
+            {
+              winner: opponentId,
+              status: 'completed',
+              completedAt: new Date(),
+              duration: match.timer.currentTime,
+            }
+          );
+          await updatePlayerStats(opponentId, userId);
+        }
 
-        await updatePlayerStats(opponentId, userId);
-
+        // Always emit to room so opponent sees surrender (they may be in room but .connected not yet set)
         io.to(roomId).emit('match-end', {
           roomId,
           winner: opponentId,
           reason: 'opponent-left',
           message: 'You win! Opponent left the match.',
         });
-
         console.log(`🏆 Opponent wins - ${socket.user.name} left the match`);
       }
 
-      deleteMatch(roomId);
+      // Delay delete so opponent has time to receive match-end
+      setTimeout(() => deleteMatch(roomId), 2000);
     } catch (error) {
       console.error('❌ Error in leave-match:', error);
     }
