@@ -1,8 +1,15 @@
 import { OAuth2Client } from 'google-auth-library';
 import jwt from 'jsonwebtoken';
+import nodemailer from 'nodemailer';
 import { User } from '../models/User.model.js';
+import { getRedisClient } from '../config/redis.js';
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+const OTP_TTL_SEC = 300;       // 5 min
+const OTP_RATE_LIMIT_SEC = 60; // 1 request per email per 60s
+const OTP_PREFIX = 'otp:gmail:';
+const OTP_SENT_PREFIX = 'otp:gmail:sent:';
 
 // ─────────────────────────────────────────────
 //  Google OAuth helpers
@@ -188,4 +195,94 @@ export const verifyJWT = (token) => {
   } catch (error) {
     throw new Error('Invalid or expired token');
   }
+};
+
+// ─────────────────────────────────────────────
+//  Gmail OTP login
+// ─────────────────────────────────────────────
+
+function getEmailTransporter() {
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) return null;
+  return nodemailer.createTransport({
+    service: 'gmail',
+    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+  });
+}
+
+/**
+ * Send OTP to Gmail address and store in Redis.
+ * Only allows @gmail.com addresses.
+ */
+export const sendGmailOtp = async (email) => {
+  const normalized = String(email).trim().toLowerCase();
+  if (!normalized.endsWith('@gmail.com')) {
+    throw new Error('Please use a Gmail address (@gmail.com) for OTP login.');
+  }
+
+  const redis = getRedisClient();
+  const sentKey = `${OTP_SENT_PREFIX}${normalized}`;
+  const exists = await redis.get(sentKey);
+  if (exists) {
+    throw new Error(`Please wait ${OTP_RATE_LIMIT_SEC} seconds before requesting another OTP.`);
+  }
+
+  const otp = String(Math.floor(100000 + Math.random() * 900000));
+  const storageKey = `${OTP_PREFIX}${normalized}`;
+  await redis.setex(storageKey, OTP_TTL_SEC, otp);
+  await redis.setex(sentKey, OTP_RATE_LIMIT_SEC, '1');
+
+  const transporter = getEmailTransporter();
+  if (!transporter) {
+    throw new Error('Email service is not configured. Please use Google or password login.');
+  }
+
+  await transporter.sendMail({
+    from: `"CodeClash" <${process.env.SMTP_USER}>`,
+    to: normalized,
+    subject: 'Your CodeClash login code',
+    html: `
+      <div style="font-family:system-ui,sans-serif;max-width:400px;margin:0 auto;">
+        <h2 style="color:#ff7a00;">CodeClash</h2>
+        <p>Your one-time login code is:</p>
+        <p style="font-size:24px;font-weight:bold;letter-spacing:4px;color:#1a1a2e;">${otp}</p>
+        <p style="color:#666;font-size:12px;">This code expires in 5 minutes. If you didn't request it, you can ignore this email.</p>
+      </div>
+    `,
+  });
+
+  return { success: true, message: 'OTP sent to your Gmail.' };
+};
+
+/**
+ * Verify OTP and return user (find or create). Only for @gmail.com.
+ */
+export const verifyGmailOtp = async (email, otp) => {
+  const normalized = String(email).trim().toLowerCase();
+  if (!normalized.endsWith('@gmail.com')) {
+    throw new Error('Please use a Gmail address for OTP login.');
+  }
+
+  const redis = getRedisClient();
+  const storageKey = `${OTP_PREFIX}${normalized}`;
+  const stored = await redis.get(storageKey);
+  if (!stored) {
+    throw new Error('OTP expired or invalid. Please request a new code.');
+  }
+  if (stored !== String(otp).trim()) {
+    throw new Error('Invalid OTP. Please check and try again.');
+  }
+  await redis.del(storageKey);
+
+  let user = await User.findOne({ email: normalized });
+  if (!user) {
+    const name = normalized.split('@')[0].replace(/[._]/g, ' ');
+    const displayName = name.charAt(0).toUpperCase() + name.slice(1);
+    user = await User.create({
+      email: normalized,
+      name: displayName,
+      picture: null,
+      role: 'user',
+    });
+  }
+  return user;
 };

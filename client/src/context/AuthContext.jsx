@@ -116,6 +116,38 @@ export const AuthProvider = ({ children }) => {
   };
 
   /**
+   * Request OTP sent to Gmail (for Gmail OTP login)
+   */
+  const requestGmailOtp = async (email) => {
+    try {
+      await api.post('/auth/gmail-otp/request', { email });
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.response?.data?.error || 'Failed to send OTP',
+      };
+    }
+  };
+
+  /**
+   * Verify Gmail OTP and sign in (find or create user, same as Google)
+   */
+  const loginWithGmailOtp = async (email, otp) => {
+    try {
+      const response = await api.post('/auth/gmail-otp/verify', { email, otp });
+      const { token: jwtToken, user: userData } = response.data;
+      saveAuth(jwtToken, userData);
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.response?.data?.error || 'Invalid or expired OTP',
+      };
+    }
+  };
+
+  /**
    * Logout
    */
   const logout = () => {
@@ -133,6 +165,8 @@ export const AuthProvider = ({ children }) => {
     loginWithGoogle,
     loginWithEmail,
     registerWithEmail,
+    requestGmailOtp,
+    loginWithGmailOtp,
     logout,
     isAuthenticated: !!token,
     isAdmin: user?.role === 'admin',
