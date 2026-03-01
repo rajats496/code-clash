@@ -45,8 +45,8 @@ async function run() {
     console.error('Contest not found:', CONTEST_ID);
     process.exit(1);
   }
-  if (contest.status !== 'scheduled' && contest.status !== 'draft' && contest.status !== 'active') {
-    console.error('Contest must be in draft, scheduled, or active state. Current:', contest.status);
+  if (contest.status !== 'scheduled' && contest.status !== 'draft') {
+    console.error('Contest must be in draft or scheduled state. Current:', contest.status);
     process.exit(1);
   }
   if ((contest.participants?.length || 0) + BOT_COUNT > (contest.maxParticipants || 1000)) {
