@@ -5,7 +5,7 @@ import GoogleLoginButton from '../components/auth/GoogleLoginButton';
 import { SwordsIcon } from '../components/common/Icons';
 
 const Login = () => {
-  const { isAuthenticated, loginWithEmail } = useAuth();
+  const { isAuthenticated, loginWithEmail, requestPasswordReset } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -13,6 +13,10 @@ const Login = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showForgotForm, setShowForgotForm] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotSuccess, setForgotSuccess] = useState('');
 
   useEffect(() => {
     if (isAuthenticated) navigate('/matchmaking');
@@ -29,6 +33,21 @@ const Login = () => {
 
     if (result.success) {
       navigate('/matchmaking');
+    } else {
+      setError(result.error);
+    }
+  };
+
+  const handleForgotSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setForgotSuccess('');
+    if (!forgotEmail.trim()) { setError('Please enter your email'); return; }
+    setForgotLoading(true);
+    const result = await requestPasswordReset(forgotEmail.trim());
+    setForgotLoading(false);
+    if (result.success) {
+      setForgotSuccess(result.message || 'If an account exists, you will receive a reset link shortly.');
     } else {
       setError(result.error);
     }
@@ -68,7 +87,38 @@ const Login = () => {
               <span>⚠️</span> {error}
             </div>
           )}
+          {forgotSuccess && (
+            <div className="p-3 rounded-xl text-sm font-medium flex items-center gap-2 mb-5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
+              {forgotSuccess}
+            </div>
+          )}
 
+          {showForgotForm ? (
+            <div className="space-y-4">
+              <p className="text-sm text-slate-400 mb-2">Enter your email to receive a password reset link.</p>
+              <form onSubmit={handleForgotSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1.5">Email</label>
+                  <input type="email" className={inputClasses} placeholder="you@example.com"
+                    value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} autoComplete="email" />
+                </div>
+                <button type="submit" disabled={forgotLoading}
+                  className="w-full py-3 rounded-xl text-sm font-bold active:scale-95 transition-all shadow-lg shadow-orange-500/20 hover:shadow-orange-500/40 disabled:opacity-50"
+                  style={{ background: 'linear-gradient(135deg,#ffa116,#ff7a00)', color: '#1a1a1a' }}>
+                  {forgotLoading ? (
+                    <span className="flex items-center justify-center gap-2"><div className="w-4 h-4 rounded-full border-2 border-slate-900 border-t-transparent animate-spin" /> Sending...</span>
+                  ) : (
+                    'Send reset link'
+                  )}
+                </button>
+              </form>
+              <button type="button" onClick={() => { setShowForgotForm(false); setForgotSuccess(''); setError(''); }}
+                className="text-sm text-slate-500 hover:text-slate-300">
+                Back to sign in
+              </button>
+            </div>
+          ) : (
+          <>
           {/* Email form */}
           <form onSubmit={handleSubmit} className="space-y-4">
 
@@ -112,6 +162,13 @@ const Login = () => {
               </div>
             </div>
 
+            <p className="text-center">
+              <button type="button" onClick={() => setShowForgotForm(true)}
+                className="text-sm text-slate-500 hover:text-slate-300 font-medium">
+                Forgot password?
+              </button>
+            </p>
+
             <button type="submit" disabled={loading}
               className="w-full py-3 rounded-xl text-sm font-bold active:scale-95 transition-all shadow-lg shadow-orange-500/20 hover:shadow-orange-500/40 disabled:opacity-50 disabled:active:scale-100 relative overflow-hidden group"
               style={{ background: 'linear-gradient(135deg,#ffa116,#ff7a00)', color: '#1a1a1a' }}>
@@ -146,6 +203,8 @@ const Login = () => {
               Sign up
             </Link>
           </p>
+          </>
+          )}
         </div>
 
         {/* Footer */}

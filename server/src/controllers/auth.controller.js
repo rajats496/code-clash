@@ -7,6 +7,8 @@ import {
   loginWithEmail,
   verifySignupOtp,
   resendSignupOtp,
+  forgotPassword,
+  resetPassword as resetPasswordService,
 } from '../services/auth.service.js';
 
 /**
@@ -156,6 +158,48 @@ export const resendOtp = async (req, res) => {
     console.error('Resend OTP error:', error.message);
     const status = error.message.includes('wait') ? 429 : 400;
     res.status(status).json({ error: error.message });
+  }
+};
+
+/**
+ * POST /api/auth/forgot-password
+ * Request password reset email (same response whether email exists or not)
+ */
+export const forgotPasswordController = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+    const result = await forgotPassword(email);
+    res.json(result);
+  } catch (error) {
+    console.error('Forgot password error:', error.message);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
+  }
+};
+
+/**
+ * POST /api/auth/reset-password
+ * Reset password with token from email link
+ */
+export const resetPasswordController = async (req, res) => {
+  try {
+    const { token, newPassword, confirmPassword } = req.body;
+    if (!token || !newPassword) {
+      return res.status(400).json({ error: 'Token and new password are required' });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ error: 'Passwords do not match' });
+    }
+    await resetPasswordService(token, newPassword);
+    res.json({ success: true, message: 'Password has been reset. You can sign in with your new password.' });
+  } catch (error) {
+    console.error('Reset password error:', error.message);
+    res.status(400).json({ error: error.message || 'Invalid or expired reset link.' });
   }
 };
 

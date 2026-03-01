@@ -18,6 +18,7 @@ import ContestArena from './pages/ContestArena';
 import CreateContest from './pages/CreateContest';
 import CreateProblem from './pages/CreateProblem';
 import Signup from './pages/Signup';
+import ResetPassword from './pages/ResetPassword';
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
@@ -98,6 +99,7 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route
               path="/history"
               element={

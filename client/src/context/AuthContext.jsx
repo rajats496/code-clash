@@ -147,6 +147,36 @@ export const AuthProvider = ({ children }) => {
   };
 
   /**
+   * Request password reset email (forgot password)
+   */
+  const requestPasswordReset = async (email) => {
+    try {
+      const response = await api.post('/auth/forgot-password', { email });
+      return { success: true, message: response.data?.message };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.response?.data?.error || 'Failed to send reset link',
+      };
+    }
+  };
+
+  /**
+   * Reset password with token from email link
+   */
+  const resetPassword = async (token, newPassword, confirmPassword) => {
+    try {
+      await api.post('/auth/reset-password', { token, newPassword, confirmPassword });
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.response?.data?.error || 'Failed to reset password',
+      };
+    }
+  };
+
+  /**
    * Logout
    */
   const logout = () => {
@@ -166,6 +196,8 @@ export const AuthProvider = ({ children }) => {
     registerWithEmail,
     verifySignupOtp,
     resendSignupOtp,
+    requestPasswordReset,
+    resetPassword,
     logout,
     isAuthenticated: !!token,
     isAdmin: user?.role === 'admin',
