@@ -14,66 +14,89 @@ import { ContestSubmission } from '../models/ContestSubmission.model.js';
 import { addSubmission } from '../services/queue.service.js';
 import { getLeaderboard, getUserRank } from '../services/leaderboard.service.js';
 import { checkSocketRateLimit } from '../middleware/rateLimit.middleware.js';
+import { getRedisClient } from '../config/redis.js';
+
+const CONTEST_CACHE_PREFIX = 'contest';
+const CONTEST_CACHE_TTL_SEC = 60;
 
 // Track active contest timers
 const contestTimers = new Map();
 
+async function getContestForJoin(contestId) {
+  const redis = getRedisClient();
+  const key = `${CONTEST_CACHE_PREFIX}:${contestId}`;
+  try {
+    const cached = await redis.get(key);
+    if (cached) return JSON.parse(cached);
+  } catch (e) {}
+
+  const contest = await Contest.findById(contestId)
+    .select('status startTime endTime duration problems participants')
+    .lean();
+  if (!contest) return null;
+
+  const forCache = {
+    ...contest,
+    startTime: contest.startTime?.toISO?.() ?? contest.startTime,
+    endTime: contest.endTime?.toISO?.() ?? contest.endTime,
+    participants: (contest.participants || []).map((p) => ({
+      ...p,
+      user: p.user?.toString?.() ?? p.user,
+    })),
+  };
+  try {
+    await redis.setex(key, CONTEST_CACHE_TTL_SEC, JSON.stringify(forCache));
+  } catch (e) {}
+  return forCache;
+}
+
 // ─────────────────────────────────────────────
-//  Join Contest Room
+//  Join Contest Room (Redis-cached to survive 500-user spike)
 // ─────────────────────────────────────────────
 export const handleJoinContest = (io, socket) => {
   socket.on('join-contest', async ({ contestId }) => {
     try {
       const userId = socket.user._id.toString();
 
-      const contest = await Contest.findById(contestId).lean();
+      const contest = await getContestForJoin(contestId);
       if (!contest) {
         return socket.emit('contest-error', { message: 'Contest not found' });
       }
 
-      // Check if registered
-      const isRegistered = contest.participants?.some(
-        (p) => p.user.toString() === userId
-      );
-
+      const userStr = (u) => (u && (typeof u === 'string' ? u : u.toString?.())) || '';
+      const isRegistered = contest.participants?.some((p) => userStr(p.user) === userId);
       if (!isRegistered) {
         return socket.emit('contest-error', { message: 'Not registered for this contest' });
       }
 
-      // Join socket room
       const room = `contest-${contestId}`;
       socket.join(room);
 
-      // Get current participant count in room
       const roomSockets = await io.in(room).fetchSockets();
       const participantsOnline = roomSockets.length;
 
       console.log(`🏆 ${socket.user.name} joined contest room ${contestId} (${participantsOnline} online)`);
 
-      // Send contest state to the user
       socket.emit('contest-joined', {
         contestId,
         status: contest.status,
         startTime: contest.startTime,
         endTime: contest.endTime,
         duration: contest.duration,
-        problemCount: contest.problems.length,
+        problemCount: (contest.problems || []).length,
         participantsOnline,
-        totalParticipants: contest.participants.length,
+        totalParticipants: (contest.participants || []).length,
       });
 
-      // Notify others
       socket.to(room).emit('contest-participant-online', {
         userId,
         name: socket.user.name,
         participantsOnline,
       });
 
-      // Start contest timer broadcast if contest is active
       if (contest.status === 'active') {
         startContestTimer(io, contestId, contest.startTime, contest.endTime);
       }
-
     } catch (err) {
       console.error('❌ Join contest error:', err.message);
       socket.emit('contest-error', { message: 'Failed to join contest' });

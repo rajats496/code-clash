@@ -1,0 +1,16 @@
+{
+  "name": "codeclash-load-test",
+  "version": "1.0.0",
+  "description": "500 concurrent contest load test and bot cleanup",
+  "type": "module",
+  "scripts": {
+    "seed": "node seed-contest-bots.js",
+    "run": "node contest-load-test.js",
+    "cleanup": "node cleanup-bots.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.3.1",
+    "mongoose": "^9.2.3",
+    "socket.io-client": "^4.6.0"
+  }
+}
