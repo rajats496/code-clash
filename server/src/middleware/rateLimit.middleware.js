@@ -122,8 +122,41 @@ export const apiRateLimit = (maxRequests = 60, windowSeconds = 60) => {
   };
 };
 
+/**
+ * Auth rate limiter (login, register, verify-otp, resend-otp).
+ * Uses IP; no user yet. Limits requests per IP per window.
+ */
+export const authRateLimit = (maxRequests = 10, windowSeconds = 900) => {
+  return async (req, res, next) => {
+    try {
+      const redis = getRedisClient();
+      const key = `ratelimit:auth:${req.ip}`;
+
+      const current = await redis.incr(key);
+      if (current === 1) await redis.expire(key, windowSeconds);
+
+      res.set('X-RateLimit-Limit', maxRequests);
+      res.set('X-RateLimit-Remaining', Math.max(0, maxRequests - current));
+
+      if (current > maxRequests) {
+        const ttl = await redis.ttl(key);
+        return res.status(429).json({
+          error: 'Too many attempts',
+          message: `Please try again in ${ttl} seconds.`,
+          retryAfter: ttl,
+        });
+      }
+      next();
+    } catch (err) {
+      console.error('Auth rate limiter error:', err.message);
+      next();
+    }
+  };
+};
+
 export default {
   contestRateLimit,
   checkSocketRateLimit,
   apiRateLimit,
+  authRateLimit,
 };

@@ -5,7 +5,7 @@ import GoogleLoginButton from '../components/auth/GoogleLoginButton';
 import { SwordsIcon } from '../components/common/Icons';
 
 const Login = () => {
-  const { isAuthenticated, loginWithEmail, requestGmailOtp, loginWithGmailOtp } = useAuth();
+  const { isAuthenticated, loginWithEmail } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -13,12 +13,6 @@ const Login = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  // Gmail OTP flow (only for user role)
-  const [gmailOtpEmail, setGmailOtpEmail] = useState('');
-  const [otpSentTo, setOtpSentTo] = useState('');
-  const [otpValue, setOtpValue] = useState('');
-  const [otpLoading, setOtpLoading] = useState(false);
-  const [otpRequestLoading, setOtpRequestLoading] = useState(false);
 
   useEffect(() => {
     if (isAuthenticated) navigate('/matchmaking');
@@ -33,44 +27,6 @@ const Login = () => {
     const result = await loginWithEmail({ email, password, role });
     setLoading(false);
 
-    if (result.success) {
-      navigate('/matchmaking');
-    } else {
-      setError(result.error);
-    }
-  };
-
-  const handleRequestGmailOtp = async (e) => {
-    e.preventDefault();
-    setError('');
-    const gmail = gmailOtpEmail.trim().toLowerCase();
-    if (!gmail || !gmail.endsWith('@gmail.com')) {
-      setError('Please enter a valid Gmail address (@gmail.com)');
-      return;
-    }
-    setOtpRequestLoading(true);
-    const result = await requestGmailOtp(gmail);
-    setOtpRequestLoading(false);
-    if (result.success) {
-      setOtpSentTo(gmail);
-      setOtpValue('');
-      setError('');
-    } else {
-      setError(result.error);
-    }
-  };
-
-  const handleVerifyGmailOtp = async (e) => {
-    e.preventDefault();
-    setError('');
-    const gmail = otpSentTo.trim();
-    if (!gmail || !otpValue.trim()) {
-      setError('Enter the 6-digit code from your email');
-      return;
-    }
-    setOtpLoading(true);
-    const result = await loginWithGmailOtp(gmail, otpValue.trim());
-    setOtpLoading(false);
     if (result.success) {
       navigate('/matchmaking');
     } else {
@@ -170,7 +126,7 @@ const Login = () => {
             </button>
           </form>
 
-          {/* Google + Gmail OTP (Only for Users) */}
+          {/* Google Login (Only for Users) */}
           {role === 'user' && (
             <>
               <div className="flex items-center gap-3 my-6">
@@ -180,69 +136,6 @@ const Login = () => {
               </div>
 
               <GoogleLoginButton />
-
-              {/* Gmail OTP */}
-              <div className="mt-6 pt-6 border-t border-slate-700/50">
-                <p className="text-[10px] font-black text-slate-500 uppercase tracking-wider mb-3">Login with Gmail OTP</p>
-                {!otpSentTo ? (
-                  <form onSubmit={handleRequestGmailOtp} className="flex gap-2">
-                    <input
-                      type="email"
-                      className={inputClasses + ' flex-1'}
-                      placeholder="you@gmail.com"
-                      value={gmailOtpEmail}
-                      onChange={(e) => setGmailOtpEmail(e.target.value)}
-                      autoComplete="email"
-                    />
-                    <button
-                      type="submit"
-                      disabled={otpRequestLoading}
-                      className="px-4 py-3 rounded-xl text-sm font-bold bg-slate-700/60 hover:bg-slate-600/60 text-slate-200 border border-slate-600/50 disabled:opacity-50 transition-all"
-                    >
-                      {otpRequestLoading ? (
-                        <div className="w-4 h-4 rounded-full border-2 border-slate-400 border-t-transparent animate-spin mx-auto" />
-                      ) : (
-                        'Send OTP'
-                      )}
-                    </button>
-                  </form>
-                ) : (
-                  <form onSubmit={handleVerifyGmailOtp} className="space-y-3">
-                    <p className="text-xs text-slate-400">Code sent to <strong className="text-slate-300">{otpSentTo}</strong></p>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        maxLength={6}
-                        className={inputClasses + ' flex-1 text-center tracking-[0.3em]'}
-                        placeholder="000000"
-                        value={otpValue}
-                        onChange={(e) => setOtpValue(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                        autoComplete="one-time-code"
-                      />
-                      <button
-                        type="submit"
-                        disabled={otpLoading || otpValue.length !== 6}
-                        className="px-4 py-3 rounded-xl text-sm font-bold disabled:opacity-50 transition-all"
-                        style={{ background: 'linear-gradient(135deg,#ffa116,#ff7a00)', color: '#1a1a1a' }}
-                      >
-                        {otpLoading ? (
-                          <div className="w-4 h-4 rounded-full border-2 border-slate-900 border-t-transparent animate-spin" />
-                        ) : (
-                          'Verify'
-                        )}
-                      </button>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => { setOtpSentTo(''); setOtpValue(''); setError(''); }}
-                      className="text-xs text-slate-500 hover:text-slate-300"
-                    >
-                      Use a different email
-                    </button>
-                  </form>
-                )}
-              </div>
             </>
           )}
 

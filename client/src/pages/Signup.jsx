@@ -5,7 +5,7 @@ import GoogleLoginButton from '../components/auth/GoogleLoginButton';
 import { SwordsIcon, SparklesIcon } from '../components/common/Icons';
 
 const Signup = () => {
-  const { isAuthenticated, registerWithEmail } = useAuth();
+  const { isAuthenticated, registerWithEmail, verifySignupOtp, resendSignupOtp } = useAuth();
   const navigate = useNavigate();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -15,6 +15,11 @@ const Signup = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [step, setStep] = useState('form');
+  const [pendingEmail, setPendingEmail] = useState('');
+  const [otpValue, setOtpValue] = useState('');
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
 
   useEffect(() => {
     if (isAuthenticated) navigate('/matchmaking');
@@ -42,7 +47,40 @@ const Signup = () => {
     setLoading(false);
 
     if (result.success) {
+      setPendingEmail(result.email || email);
+      setStep('otp');
+      setOtpValue('');
+      setError('');
+    } else {
+      setError(result.error);
+    }
+  };
+
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
+    setError('');
+    if (!otpValue.trim() || otpValue.length !== 6) {
+      setError('Enter the 6-digit code from your email');
+      return;
+    }
+    setOtpLoading(true);
+    const result = await verifySignupOtp(pendingEmail, otpValue.trim());
+    setOtpLoading(false);
+    if (result.success) {
       navigate('/matchmaking');
+    } else {
+      setError(result.error);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    setError('');
+    setResendLoading(true);
+    const result = await resendSignupOtp(pendingEmail);
+    setResendLoading(false);
+    if (result.success) {
+      setOtpValue('');
+      setError('');
     } else {
       setError(result.error);
     }
@@ -98,6 +136,49 @@ const Signup = () => {
             </div>
           )}
 
+          {step === 'otp' ? (
+            <form onSubmit={handleVerifyOtp} className="space-y-4">
+              <p className="text-sm text-slate-400">We sent a verification code to <strong className="text-slate-300">{pendingEmail}</strong></p>
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1.5">
+                  Verification code
+                </label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  className={inputClasses + ' text-center tracking-[0.3em]'}
+                  placeholder="000000"
+                  value={otpValue}
+                  onChange={(e) => setOtpValue(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  autoComplete="one-time-code"
+                />
+              </div>
+              <button type="submit" disabled={otpLoading || otpValue.length !== 6}
+                className="w-full py-3 rounded-xl text-sm font-bold active:scale-95 transition-all shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40 disabled:opacity-50 disabled:active:scale-100 relative overflow-hidden group"
+                style={{ background: 'linear-gradient(135deg,#10b981,#059669)', color: '#fff' }}>
+                <span className="relative z-10 flex items-center justify-center gap-2">
+                  {otpLoading ? (
+                    <><div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" /> Verifying...</>
+                  ) : (
+                    <>Verify &amp; Sign in</>
+                  )}
+                </span>
+              </button>
+              <p className="text-center text-sm text-slate-400">
+                Didn&apos;t receive the code?{' '}
+                <button type="button" onClick={handleResendOtp} disabled={resendLoading}
+                  className="font-bold text-orange-400 hover:text-orange-300 transition-colors disabled:opacity-50">
+                  {resendLoading ? 'Sending...' : 'Resend code'}
+                </button>
+              </p>
+              <button type="button" onClick={() => { setStep('form'); setError(''); setOtpValue(''); }}
+                className="text-xs text-slate-500 hover:text-slate-300 w-full text-center">
+                Use a different email
+              </button>
+            </form>
+          ) : (
+          <>
           {/* Email form */}
           <form onSubmit={handleSubmit} className="space-y-4">
 
@@ -183,7 +264,7 @@ const Signup = () => {
           </form>
 
           {/* Google Login (Only for Users) */}
-          {role === 'user' && (
+          {role === 'user' && step === 'form' && (
             <>
               {/* Divider */}
               <div className="flex items-center gap-3 my-6">
@@ -195,6 +276,8 @@ const Signup = () => {
               {/* Google */}
               <GoogleLoginButton />
             </>
+          )}
+          </>
           )}
 
           {/* Login link */}

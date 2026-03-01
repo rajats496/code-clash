@@ -5,8 +5,8 @@ import {
   generateJWT,
   registerWithEmail,
   loginWithEmail,
-  sendGmailOtp,
-  verifyGmailOtp as verifyGmailOtpService,
+  verifySignupOtp,
+  resendSignupOtp,
 } from '../services/auth.service.js';
 
 /**
@@ -49,7 +49,7 @@ export const googleAuth = async (req, res) => {
 
 /**
  * POST /api/auth/register
- * Register with email + password
+ * Register with email + password; sends OTP. No JWT until OTP verified.
  */
 export const register = async (req, res) => {
   try {
@@ -59,22 +59,12 @@ export const register = async (req, res) => {
       return res.status(400).json({ error: 'Name, email, and password are required' });
     }
 
-    const user = await registerWithEmail({ name, email, password, role });
-    const jwtToken = generateJWT(user);
+    const { user, message } = await registerWithEmail({ name, email, password, role });
 
     res.status(201).json({
       success: true,
-      token: jwtToken,
-      user: {
-        id: user._id,
-        email: user.email,
-        name: user.name,
-        picture: user.picture,
-        role: user.role,
-        rating: user.rating,
-        matchesPlayed: user.matchesPlayed,
-        matchesWon: user.matchesWon,
-      },
+      message,
+      email: user.email,
     });
   } catch (error) {
     console.error('Register error:', error.message);
@@ -119,35 +109,16 @@ export const login = async (req, res) => {
 };
 
 /**
- * POST /api/auth/gmail-otp/request
- * Request OTP sent to Gmail address
+ * POST /api/auth/verify-otp
+ * Verify signup OTP; returns token + user (same shape as /login)
  */
-export const requestGmailOtp = async (req, res) => {
-  try {
-    const { email } = req.body;
-    if (!email) {
-      return res.status(400).json({ error: 'Email is required' });
-    }
-    await sendGmailOtp(email);
-    res.json({ success: true, message: 'OTP sent to your Gmail.' });
-  } catch (error) {
-    console.error('Gmail OTP request error:', error.message);
-    const status = error.message.includes('wait') ? 429 : 400;
-    res.status(status).json({ error: error.message });
-  }
-};
-
-/**
- * POST /api/auth/gmail-otp/verify
- * Verify OTP and return token + user (same shape as /login)
- */
-export const verifyGmailOtp = async (req, res) => {
+export const verifyOtp = async (req, res) => {
   try {
     const { email, otp } = req.body;
     if (!email || !otp) {
-      return res.status(400).json({ error: 'Email and OTP are required' });
+      return res.status(400).json({ error: 'Email and verification code are required' });
     }
-    const user = await verifyGmailOtpService(email, otp);
+    const user = await verifySignupOtp(email, otp);
     const jwtToken = generateJWT(user);
     res.json({
       success: true,
@@ -164,8 +135,27 @@ export const verifyGmailOtp = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Gmail OTP verify error:', error.message);
+    console.error('Verify OTP error:', error.message);
     res.status(401).json({ error: error.message });
+  }
+};
+
+/**
+ * POST /api/auth/resend-otp
+ * Resend signup verification OTP (rate limited per email)
+ */
+export const resendOtp = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+    await resendSignupOtp(email);
+    res.json({ success: true, message: 'Verification code sent to your email.' });
+  } catch (error) {
+    console.error('Resend OTP error:', error.message);
+    const status = error.message.includes('wait') ? 429 : 400;
+    res.status(status).json({ error: error.message });
   }
 };
 

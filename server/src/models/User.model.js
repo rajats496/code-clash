@@ -50,6 +50,13 @@ const userSchema = new mongoose.Schema(
       from: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
       createdAt: { type: Date, default: Date.now },
     }],
+    // Email verification (signup OTP). Google users and existing users are treated as verified.
+    isVerified: {
+      type: Boolean,
+      default: true,
+    },
+    otp: { type: String, select: false },
+    otpExpires: { type: Date, select: false },
   },
   { timestamps: true } // createdAt, updatedAt
 );

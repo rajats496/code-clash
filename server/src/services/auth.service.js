@@ -6,10 +6,13 @@ import { getRedisClient } from '../config/redis.js';
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-const OTP_TTL_SEC = 300;       // 5 min
-const OTP_RATE_LIMIT_SEC = 60; // 1 request per email per 60s
-const OTP_PREFIX = 'otp:gmail:';
-const OTP_SENT_PREFIX = 'otp:gmail:sent:';
+// Signup OTP (stored on user document)
+const OTP_EXPIRY_MS = 10 * 60 * 1000;       // 10 min
+const OTP_RESEND_WINDOW_SEC = 60;           // resend only after 60s
+const OTP_ATTEMPTS_MAX = 5;
+const OTP_ATTEMPTS_WINDOW_SEC = 15 * 60;   // 15 min
+const OTP_RESEND_REDIS_PREFIX = 'otp:resend:';
+const OTP_ATTEMPTS_REDIS_PREFIX = 'otp:attempts:';
 
 // ─────────────────────────────────────────────
 //  Google OAuth helpers
@@ -97,34 +100,66 @@ export const findOrCreateUser = async (googleUser) => {
 //  Email / Password helpers
 // ─────────────────────────────────────────────
 
+function getEmailTransporter() {
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) return null;
+  return nodemailer.createTransport({
+    service: 'gmail',
+    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+  });
+}
+
+function sendOtpEmail(toEmail, otp, subject = 'Your CodeClash verification code') {
+  const transporter = getEmailTransporter();
+  if (!transporter) throw new Error('Email service is not configured.');
+  return transporter.sendMail({
+    from: `"CodeClash" <${process.env.SMTP_USER}>`,
+    to: toEmail,
+    subject,
+    html: `
+      <div style="font-family:system-ui,sans-serif;max-width:400px;margin:0 auto;">
+        <h2 style="color:#ff7a00;">CodeClash</h2>
+        <p>Your verification code is:</p>
+        <p style="font-size:24px;font-weight:bold;letter-spacing:4px;color:#1a1a2e;">${otp}</p>
+        <p style="color:#666;font-size:12px;">This code expires in 10 minutes. If you didn't request it, you can ignore this email.</p>
+      </div>
+    `,
+  });
+}
+
 /**
- * Register a new user with email + password
+ * Register: create user with isVerified=false, send OTP. No JWT until OTP verified.
  */
 export const registerWithEmail = async ({ name, email, password, role }) => {
   if (role === 'admin' && email !== process.env.ADMIN_EMAIL) {
     throw new Error('You are not authorized to register as an admin');
   }
 
-  // Check if email already exists
-  const existing = await User.findOne({ email });
+  const normalizedEmail = String(email).trim().toLowerCase();
+  const existing = await User.findOne({ email: normalizedEmail });
   if (existing) {
     throw new Error('An account with this email already exists');
   }
 
-  // Validate password strength
   if (!password || password.length < 6) {
     throw new Error('Password must be at least 6 characters');
   }
 
+  const otp = String(Math.floor(100000 + Math.random() * 900000));
+  const otpExpires = new Date(Date.now() + OTP_EXPIRY_MS);
+
   const user = await User.create({
-    name,
-    email,
-    password, // hashed by pre-save hook
+    name: name.trim(),
+    email: normalizedEmail,
+    password,
     picture: null,
     role: role || 'user',
+    isVerified: false,
+    otp,
+    otpExpires,
   });
 
-  return user;
+  await sendOtpEmail(normalizedEmail, otp);
+  return { user, message: 'Verification code sent to your email.' };
 };
 
 /**
@@ -163,6 +198,10 @@ export const loginWithEmail = async ({ email, password, role }) => {
     throw new Error('Invalid email or password');
   }
 
+  if (user.isVerified === false) {
+    throw new Error('Please verify your email. Check your inbox for the verification code.');
+  }
+
   return user;
 };
 
@@ -198,91 +237,77 @@ export const verifyJWT = (token) => {
 };
 
 // ─────────────────────────────────────────────
-//  Gmail OTP login
+//  Signup OTP verification
 // ─────────────────────────────────────────────
 
-function getEmailTransporter() {
-  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) return null;
-  return nodemailer.createTransport({
-    service: 'gmail',
-    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-  });
-}
-
 /**
- * Send OTP to Gmail address and store in Redis.
- * Only allows @gmail.com addresses.
+ * Verify signup OTP and mark user verified. Returns user for JWT.
  */
-export const sendGmailOtp = async (email) => {
+export const verifySignupOtp = async (email, otp) => {
   const normalized = String(email).trim().toLowerCase();
-  if (!normalized.endsWith('@gmail.com')) {
-    throw new Error('Please use a Gmail address (@gmail.com) for OTP login.');
-  }
-
   const redis = getRedisClient();
-  const sentKey = `${OTP_SENT_PREFIX}${normalized}`;
-  const exists = await redis.get(sentKey);
-  if (exists) {
-    throw new Error(`Please wait ${OTP_RATE_LIMIT_SEC} seconds before requesting another OTP.`);
+
+  const attemptsKey = `${OTP_ATTEMPTS_REDIS_PREFIX}${normalized}`;
+  const attempts = await redis.incr(attemptsKey);
+  if (attempts === 1) await redis.expire(attemptsKey, OTP_ATTEMPTS_WINDOW_SEC);
+  if (attempts > OTP_ATTEMPTS_MAX) {
+    throw new Error('Too many failed attempts. Please request a new code.');
   }
 
-  const otp = String(Math.floor(100000 + Math.random() * 900000));
-  const storageKey = `${OTP_PREFIX}${normalized}`;
-  await redis.setex(storageKey, OTP_TTL_SEC, otp);
-  await redis.setex(sentKey, OTP_RATE_LIMIT_SEC, '1');
-
-  const transporter = getEmailTransporter();
-  if (!transporter) {
-    throw new Error('Email service is not configured. Please use Google or password login.');
+  const user = await User.findOne({ email: normalized }).select('+otp +otpExpires');
+  if (!user) {
+    throw new Error('No account found for this email. Please sign up again.');
+  }
+  if (user.isVerified) {
+    throw new Error('Account is already verified. You can sign in.');
+  }
+  if (!user.otp || !user.otpExpires) {
+    throw new Error('Verification code expired. Please request a new code.');
+  }
+  if (new Date() > user.otpExpires) {
+    throw new Error('Verification code expired. Please request a new code.');
+  }
+  if (user.otp !== String(otp).trim()) {
+    throw new Error('Invalid verification code. Please check and try again.');
   }
 
-  await transporter.sendMail({
-    from: `"CodeClash" <${process.env.SMTP_USER}>`,
-    to: normalized,
-    subject: 'Your CodeClash login code',
-    html: `
-      <div style="font-family:system-ui,sans-serif;max-width:400px;margin:0 auto;">
-        <h2 style="color:#ff7a00;">CodeClash</h2>
-        <p>Your one-time login code is:</p>
-        <p style="font-size:24px;font-weight:bold;letter-spacing:4px;color:#1a1a2e;">${otp}</p>
-        <p style="color:#666;font-size:12px;">This code expires in 5 minutes. If you didn't request it, you can ignore this email.</p>
-      </div>
-    `,
-  });
-
-  return { success: true, message: 'OTP sent to your Gmail.' };
+  user.isVerified = true;
+  user.otp = undefined;
+  user.otpExpires = undefined;
+  await user.save();
+  await redis.del(attemptsKey);
+  return user;
 };
 
 /**
- * Verify OTP and return user (find or create). Only for @gmail.com.
+ * Resend signup OTP. Rate limited per email.
  */
-export const verifyGmailOtp = async (email, otp) => {
+export const resendSignupOtp = async (email) => {
   const normalized = String(email).trim().toLowerCase();
-  if (!normalized.endsWith('@gmail.com')) {
-    throw new Error('Please use a Gmail address for OTP login.');
-  }
-
   const redis = getRedisClient();
-  const storageKey = `${OTP_PREFIX}${normalized}`;
-  const stored = await redis.get(storageKey);
-  if (!stored) {
-    throw new Error('OTP expired or invalid. Please request a new code.');
-  }
-  if (stored !== String(otp).trim()) {
-    throw new Error('Invalid OTP. Please check and try again.');
-  }
-  await redis.del(storageKey);
 
-  let user = await User.findOne({ email: normalized });
-  if (!user) {
-    const name = normalized.split('@')[0].replace(/[._]/g, ' ');
-    const displayName = name.charAt(0).toUpperCase() + name.slice(1);
-    user = await User.create({
-      email: normalized,
-      name: displayName,
-      picture: null,
-      role: 'user',
-    });
+  const resendKey = `${OTP_RESEND_REDIS_PREFIX}${normalized}`;
+  const exists = await redis.get(resendKey);
+  if (exists) {
+    const ttl = await redis.ttl(resendKey);
+    throw new Error(`Please wait ${ttl} seconds before requesting another code.`);
   }
-  return user;
+
+  const user = await User.findOne({ email: normalized }).select('+otp +otpExpires');
+  if (!user) {
+    throw new Error('No account found for this email. Please sign up again.');
+  }
+  if (user.isVerified) {
+    throw new Error('Account is already verified. You can sign in.');
+  }
+
+  const otp = String(Math.floor(100000 + Math.random() * 900000));
+  const otpExpires = new Date(Date.now() + OTP_EXPIRY_MS);
+  user.otp = otp;
+  user.otpExpires = otpExpires;
+  await user.save();
+
+  await redis.setex(resendKey, OTP_RESEND_WINDOW_SEC, '1');
+  await sendOtpEmail(normalized, otp);
+  return { success: true, message: 'Verification code sent to your email.' };
 };
